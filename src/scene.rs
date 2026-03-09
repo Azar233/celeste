@@ -5,11 +5,12 @@ use bevy::sprite::Anchor;
 use crate::components::{
     AnimationState, AnimationTimer, ColliderSize, Crouching, DashState, DashTrailEmitter, Facing,
     Ground, Grounded, Hair, HairBangs, HairMaterial, HairSegment, JumpState, MovementInput,
-    Player, PlayerAnimations, Velocity, WallContact, WallJumpTimer,
+    Player, PlayerAnimations, Velocity, WallContact, WallJumpTimer, WeatherMaterial,
+    WeatherOverlay,
 };
 use crate::constants::{
     BANGS_Z, HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
-    PLAYER_COLLIDER_SIZE, SPAWN_POSITION,
+    PLAYER_COLLIDER_SIZE, SPAWN_POSITION, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::utils::{color_to_vec4, initial_hair_positions};
 
@@ -28,6 +29,7 @@ pub fn setup(
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut hair_materials: ResMut<Assets<HairMaterial>>,
+    mut weather_materials: ResMut<Assets<WeatherMaterial>>,
 ) {
     let run_texture = asset_server.load("run_sheet.png");
     let run_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 12, 1, None, None);
@@ -37,9 +39,16 @@ pub fn setup(
     let idle_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 9, 1, None, None);
     let idle_layout_handle = texture_atlas_layouts.add(idle_layout);
     let duck_texture = asset_server.load("duck.png");
+    let climb_texture = asset_server.load("climb_sheet.png");
+    let climb_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 6, 1, None, None);
+    let climb_layout_handle = texture_atlas_layouts.add(climb_layout);
+    let climb_lookback_texture = asset_server.load("climb_lookback_sheet.png");
+    let climb_lookback_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 3, 1, None, None);
+    let climb_lookback_layout_handle = texture_atlas_layouts.add(climb_lookback_layout);
     let bangs_texture = asset_server.load("bangs.png");
 
     spawn_camera(&mut commands);
+    spawn_weather_overlay(&mut commands, &mut meshes, &mut weather_materials);
 
     let (hair_entities, bangs_entity) = spawn_hair_entities(
         &mut commands,
@@ -55,6 +64,10 @@ pub fn setup(
         run_texture,
         run_layout_handle,
         duck_texture,
+        climb_texture,
+        climb_layout_handle,
+        climb_lookback_texture,
+        climb_lookback_layout_handle,
         hair_entities,
         bangs_entity,
     );
@@ -122,6 +135,10 @@ fn spawn_player(
     run_texture: Handle<Image>,
     run_layout_handle: Handle<TextureAtlasLayout>,
     duck_texture: Handle<Image>,
+    climb_texture: Handle<Image>,
+    climb_layout_handle: Handle<TextureAtlasLayout>,
+    climb_lookback_texture: Handle<Image>,
+    climb_lookback_layout_handle: Handle<TextureAtlasLayout>,
     hair_entities: Vec<Entity>,
     bangs_entity: Entity,
 ) {
@@ -164,6 +181,10 @@ fn spawn_player(
             run_texture: run_texture.clone(),
             run_layout: run_layout_handle.clone(),
             duck_texture,
+            climb_texture,
+            climb_layout: climb_layout_handle,
+            climb_lookback_texture,
+            climb_lookback_layout: climb_lookback_layout_handle,
         },
         Sprite {
             image: idle_texture,
@@ -218,4 +239,22 @@ pub fn debug_gizmos(mut gizmos: Gizmos, query: Query<(&Transform, &ColliderSize)
             Color::srgb(0.0, 1.0, 0.0),
         );
     }
+}
+
+fn spawn_weather_overlay(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    weather_materials: &mut ResMut<Assets<WeatherMaterial>>,
+) {
+    let weather_mesh = meshes.add(Rectangle::new(WEATHER_OVERLAY_SIZE.x, WEATHER_OVERLAY_SIZE.y));
+    let weather_material = weather_materials.add(WeatherMaterial {
+        weather_data: Vec4::ZERO,
+    });
+
+    commands.spawn((
+        WeatherOverlay,
+        Mesh2d(weather_mesh),
+        MeshMaterial2d(weather_material),
+        Transform::from_xyz(0.0, 0.0, WEATHER_OVERLAY_Z),
+    ));
 }

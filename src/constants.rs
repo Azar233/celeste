@@ -43,6 +43,8 @@ pub const HAIR_ROOT_OFFSET: Vec2 = Vec2::new(-3.0, 3.5);
 pub const BANGS_OFFSET: Vec2 = Vec2::new(0.0, 5.0);
 pub const BANGS_Z: f32 = 9.6;
 pub const HAIR_SEGMENT_Z: f32 = 9.0;
+pub const WEATHER_OVERLAY_SIZE: Vec2 = Vec2::new(420.0, 240.0);
+pub const WEATHER_OVERLAY_Z: f32 = 30.0;
 
 pub const DEATH_THRESHOLD: f32 = -200.0;
 pub const SPAWN_POSITION: Vec3 = Vec3::new(0.0, 0.0, 0.0);

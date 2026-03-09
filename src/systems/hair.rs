@@ -52,12 +52,14 @@ pub fn update_hair(
                 _ => Vec2::ZERO,
             },
             AnimationState::Duck => Vec2::new(0.0, -4.0),
+            AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
         };
 
         let bangs_anim_offset = match anim_state {
             AnimationState::Idle => hair_anim_offset,
             AnimationState::Run => Vec2::ZERO,
             AnimationState::Duck => Vec2::new(0.0, -4.0),
+            AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
         };
 
         let root_pos = player_transform.translation.truncate()

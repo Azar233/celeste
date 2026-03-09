@@ -112,11 +112,32 @@ impl Material2d for HairMaterial {
     }
 }
 
+#[derive(Component)]
+pub struct WeatherOverlay;
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct WeatherMaterial {
+    #[uniform(0)]
+    pub weather_data: Vec4,
+}
+
+impl Material2d for WeatherMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/weather.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
+}
+
 #[derive(Component, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum AnimationState {
     Idle,
     Run,
     Duck,
+    Climb,
+    ClimbLookback,
 }
 
 #[derive(Component)]
@@ -126,4 +147,8 @@ pub struct PlayerAnimations {
     pub run_texture: Handle<Image>,
     pub run_layout: Handle<TextureAtlasLayout>,
     pub duck_texture: Handle<Image>,
+    pub climb_texture: Handle<Image>,
+    pub climb_layout: Handle<TextureAtlasLayout>,
+    pub climb_lookback_texture: Handle<Image>,
+    pub climb_lookback_layout: Handle<TextureAtlasLayout>,
 }

@@ -130,7 +130,15 @@ pub fn player_input(
         move_input.x = input_x;
         move_input.y = input_y;
 
-        if input_x != 0.0 {
+        let is_grabbing = keyboard_input.pressed(KeyCode::KeyJ);
+
+        if is_grabbing && *wall_contact != WallContact::None {
+            facing.0 = match wall_contact {
+                WallContact::Left => -1.0,
+                WallContact::Right => 1.0,
+                WallContact::None => facing.0,
+            };
+        } else if input_x != 0.0 {
             facing.0 = input_x;
         }
 
@@ -151,8 +159,6 @@ pub fn player_input(
         if dash_state.is_dashing {
             return;
         }
-
-        let is_grabbing = keyboard_input.pressed(KeyCode::KeyJ);
 
         if keyboard_input.just_pressed(KeyCode::Space) {
             if grounded.0 || jump_state.jumps_remaining > 0 {
