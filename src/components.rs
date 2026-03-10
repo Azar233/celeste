@@ -27,11 +27,26 @@ pub struct Ground;
 
 #[derive(Component)]
 pub struct JumpState {
-    pub jumps_remaining: u8,
+    pub jump_grace_timer: f32,
+    pub jump_buffer_timer: f32,
+    pub super_jump_timer: f32,
 }
 
 #[derive(Component)]
 pub struct WallJumpTimer(pub f32);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PlayerState {
+    Normal,
+    Climb,
+    Dash,
+}
+
+#[derive(Component, Debug)]
+pub struct PlayerStateMachine {
+    pub current: PlayerState,
+    pub previous: PlayerState,
+}
 
 #[derive(Component)]
 pub struct DashState {
@@ -39,6 +54,12 @@ pub struct DashState {
     pub timer: f32,
     pub direction: Vec2,
     pub dashes_remaining: u8,
+}
+
+#[derive(Component)]
+pub struct DashSlideState {
+    pub timer: f32,
+    pub direction: f32,
 }
 
 #[derive(Component)]
@@ -59,6 +80,14 @@ pub struct MovementInput {
     pub y: f32,
 }
 
+#[derive(Component, Default)]
+pub struct PlayerActionInput {
+    pub jump_pressed: bool,
+    pub jump_held: bool,
+    pub dash_pressed: bool,
+    pub grab_held: bool,
+}
+
 #[derive(Component)]
 pub struct AnimationTimer(pub Timer);
 
@@ -67,6 +96,11 @@ pub struct DashTrailParticle {
     pub velocity: Vec2,
     pub lifetime: f32,
     pub max_lifetime: f32,
+}
+
+#[derive(Resource, Default)]
+pub struct FreezeFrameState {
+    pub timer: f32,
 }
 
 #[derive(Component)]

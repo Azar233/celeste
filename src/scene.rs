@@ -3,14 +3,14 @@ use bevy::render::camera::ScalingMode;
 use bevy::sprite::Anchor;
 
 use crate::components::{
-    AnimationState, AnimationTimer, ColliderSize, Crouching, DashState, DashTrailEmitter, Facing,
-    Ground, Grounded, Hair, HairBangs, HairMaterial, HairSegment, JumpState, MovementInput,
-    Player, PlayerAnimations, Velocity, WallContact, WallJumpTimer, WeatherMaterial,
-    WeatherOverlay,
+    AnimationState, AnimationTimer, ColliderSize, Crouching, DashSlideState, DashState,
+    DashTrailEmitter, Facing, Ground, Grounded, Hair, HairBangs, HairMaterial, HairSegment,
+    JumpState, MovementInput, Player, PlayerActionInput, PlayerAnimations, PlayerState,
+    PlayerStateMachine, Velocity, WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
 };
 use crate::constants::{
     BANGS_Z, HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
-    PLAYER_COLLIDER_SIZE, SPAWN_POSITION, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
+    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, SPAWN_POSITION, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::utils::{color_to_vec4, initial_hair_positions};
 
@@ -151,8 +151,17 @@ fn spawn_player(
         WallContact::None,
         Facing(1.0),
         MovementInput::default(),
-        JumpState { jumps_remaining: 1 },
+        PlayerActionInput::default(),
+        JumpState {
+            jump_grace_timer: 0.0,
+            jump_buffer_timer: 0.0,
+            super_jump_timer: 0.0,
+        },
         WallJumpTimer(0.0),
+        PlayerStateMachine {
+            current: PlayerState::Normal,
+            previous: PlayerState::Normal,
+        },
         DashState {
             is_dashing: false,
             timer: 0.0,
@@ -175,6 +184,10 @@ fn spawn_player(
     player.insert((
         Crouching(false),
         ColliderSize(PLAYER_COLLIDER_SIZE),
+        DashSlideState {
+            timer: 0.0,
+            direction: 0.0,
+        },
         PlayerAnimations {
             idle_texture: idle_texture.clone(),
             idle_layout: idle_layout_handle.clone(),
@@ -195,7 +208,7 @@ fn spawn_player(
             anchor: Anchor::Custom(Vec2::new(0.0, -0.235)),
             ..default()
         },
-        Transform::from_xyz(0.0, 0.0, 10.0),
+        Transform::from_xyz(SPAWN_POSITION.x, SPAWN_POSITION.y, PLAYER_RENDER_Z),
     ));
 }
 
