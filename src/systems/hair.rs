@@ -52,6 +52,11 @@ pub fn update_hair(
                 _ => Vec2::ZERO,
             },
             AnimationState::Duck => Vec2::new(0.0, -4.0),
+            AnimationState::Dash => Vec2::new(0.0, -2.0),
+            AnimationState::JumpSlow
+            | AnimationState::JumpFast
+            | AnimationState::FallSlow
+            | AnimationState::FallFast => Vec2::new(0.0, -2.0),
             AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
         };
 
@@ -59,6 +64,11 @@ pub fn update_hair(
             AnimationState::Idle => hair_anim_offset,
             AnimationState::Run => Vec2::ZERO,
             AnimationState::Duck => Vec2::new(0.0, -4.0),
+            AnimationState::Dash => Vec2::new(0.0, -2.0),
+            AnimationState::JumpSlow
+            | AnimationState::JumpFast
+            | AnimationState::FallSlow
+            | AnimationState::FallFast => Vec2::new(0.0, -2.0),
             AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
         };
 

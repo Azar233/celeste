@@ -30,6 +30,7 @@ pub struct JumpState {
     pub jump_grace_timer: f32,
     pub jump_buffer_timer: f32,
     pub super_jump_timer: f32,
+    pub fast_jump_active: bool,
 }
 
 #[derive(Component)]
@@ -170,6 +171,11 @@ pub enum AnimationState {
     Idle,
     Run,
     Duck,
+    Dash,
+    JumpSlow,
+    JumpFast,
+    FallSlow,
+    FallFast,
     Climb,
     ClimbLookback,
 }
@@ -181,6 +187,16 @@ pub struct PlayerAnimations {
     pub run_texture: Handle<Image>,
     pub run_layout: Handle<TextureAtlasLayout>,
     pub duck_texture: Handle<Image>,
+    pub dash_texture: Handle<Image>,
+    pub dash_layout: Handle<TextureAtlasLayout>,
+    pub jump_slow_texture: Handle<Image>,
+    pub jump_slow_layout: Handle<TextureAtlasLayout>,
+    pub jump_fast_texture: Handle<Image>,
+    pub jump_fast_layout: Handle<TextureAtlasLayout>,
+    pub fall_slow_texture: Handle<Image>,
+    pub fall_slow_layout: Handle<TextureAtlasLayout>,
+    pub fall_fast_texture: Handle<Image>,
+    pub fall_fast_layout: Handle<TextureAtlasLayout>,
     pub climb_texture: Handle<Image>,
     pub climb_layout: Handle<TextureAtlasLayout>,
     pub climb_lookback_texture: Handle<Image>,

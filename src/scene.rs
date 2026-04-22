@@ -39,6 +39,21 @@ pub fn setup(
     let idle_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 9, 1, None, None);
     let idle_layout_handle = texture_atlas_layouts.add(idle_layout);
     let duck_texture = asset_server.load("duck.png");
+    let dash_texture = asset_server.load("dash_sheet.png");
+    let dash_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 4, 1, None, None);
+    let dash_layout_handle = texture_atlas_layouts.add(dash_layout);
+    let jump_slow_texture = asset_server.load("jumpslow_sheet.png");
+    let jump_slow_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 2, 1, None, None);
+    let jump_slow_layout_handle = texture_atlas_layouts.add(jump_slow_layout);
+    let jump_fast_texture = asset_server.load("jumpfast_sheet.png");
+    let jump_fast_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 2, 1, None, None);
+    let jump_fast_layout_handle = texture_atlas_layouts.add(jump_fast_layout);
+    let fall_slow_texture = asset_server.load("fallslow_sheet.png");
+    let fall_slow_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 2, 1, None, None);
+    let fall_slow_layout_handle = texture_atlas_layouts.add(fall_slow_layout);
+    let fall_fast_texture = asset_server.load("fallfast_sheet.png");
+    let fall_fast_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 2, 1, None, None);
+    let fall_fast_layout_handle = texture_atlas_layouts.add(fall_fast_layout);
     let climb_texture = asset_server.load("climb_sheet.png");
     let climb_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 6, 1, None, None);
     let climb_layout_handle = texture_atlas_layouts.add(climb_layout);
@@ -64,6 +79,16 @@ pub fn setup(
         run_texture,
         run_layout_handle,
         duck_texture,
+        dash_texture,
+        dash_layout_handle,
+        jump_slow_texture,
+        jump_slow_layout_handle,
+        jump_fast_texture,
+        jump_fast_layout_handle,
+        fall_slow_texture,
+        fall_slow_layout_handle,
+        fall_fast_texture,
+        fall_fast_layout_handle,
         climb_texture,
         climb_layout_handle,
         climb_lookback_texture,
@@ -135,6 +160,16 @@ fn spawn_player(
     run_texture: Handle<Image>,
     run_layout_handle: Handle<TextureAtlasLayout>,
     duck_texture: Handle<Image>,
+    dash_texture: Handle<Image>,
+    dash_layout_handle: Handle<TextureAtlasLayout>,
+    jump_slow_texture: Handle<Image>,
+    jump_slow_layout_handle: Handle<TextureAtlasLayout>,
+    jump_fast_texture: Handle<Image>,
+    jump_fast_layout_handle: Handle<TextureAtlasLayout>,
+    fall_slow_texture: Handle<Image>,
+    fall_slow_layout_handle: Handle<TextureAtlasLayout>,
+    fall_fast_texture: Handle<Image>,
+    fall_fast_layout_handle: Handle<TextureAtlasLayout>,
     climb_texture: Handle<Image>,
     climb_layout_handle: Handle<TextureAtlasLayout>,
     climb_lookback_texture: Handle<Image>,
@@ -156,6 +191,7 @@ fn spawn_player(
             jump_grace_timer: 0.0,
             jump_buffer_timer: 0.0,
             super_jump_timer: 0.0,
+            fast_jump_active: false,
         },
         WallJumpTimer(0.0),
         PlayerStateMachine {
@@ -194,6 +230,16 @@ fn spawn_player(
             run_texture: run_texture.clone(),
             run_layout: run_layout_handle.clone(),
             duck_texture,
+            dash_texture,
+            dash_layout: dash_layout_handle,
+            jump_slow_texture,
+            jump_slow_layout: jump_slow_layout_handle,
+            jump_fast_texture,
+            jump_fast_layout: jump_fast_layout_handle,
+            fall_slow_texture,
+            fall_slow_layout: fall_slow_layout_handle,
+            fall_fast_texture,
+            fall_fast_layout: fall_fast_layout_handle,
             climb_texture,
             climb_layout: climb_layout_handle,
             climb_lookback_texture,
