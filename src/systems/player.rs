@@ -205,10 +205,14 @@ pub fn cache_player_input(
     mut query: Query<(&mut MovementInput, &mut PlayerActionInput, &mut Facing, &WallContact), With<Player>>,
 ) {
     if let Ok((mut move_input, mut actions, mut facing, wall_contact)) = query.get_single_mut() {
-        let left = keyboard_input.pressed(KeyCode::KeyA);
-        let right = keyboard_input.pressed(KeyCode::KeyD);
-        let up = keyboard_input.pressed(KeyCode::KeyW);
-        let down = keyboard_input.pressed(KeyCode::KeyS);
+        let left = keyboard_input.pressed(KeyCode::KeyA)
+            || keyboard_input.pressed(KeyCode::ArrowLeft);
+        let right = keyboard_input.pressed(KeyCode::KeyD)
+            || keyboard_input.pressed(KeyCode::ArrowRight);
+        let up = keyboard_input.pressed(KeyCode::KeyW)
+            || keyboard_input.pressed(KeyCode::ArrowUp);
+        let down = keyboard_input.pressed(KeyCode::KeyS)
+            || keyboard_input.pressed(KeyCode::ArrowDown);
 
         move_input.x = if right && !left {
             1.0
@@ -225,10 +229,14 @@ pub fn cache_player_input(
             0.0
         };
 
-        actions.jump_pressed = keyboard_input.just_pressed(KeyCode::Space);
-        actions.jump_held = keyboard_input.pressed(KeyCode::Space);
-        actions.dash_pressed = keyboard_input.just_pressed(KeyCode::KeyK);
-        actions.grab_held = keyboard_input.pressed(KeyCode::KeyJ);
+        actions.jump_pressed = keyboard_input.just_pressed(KeyCode::Space)
+            || keyboard_input.just_pressed(KeyCode::KeyZ);
+        actions.jump_held = keyboard_input.pressed(KeyCode::Space)
+            || keyboard_input.pressed(KeyCode::KeyZ);
+        actions.dash_pressed = keyboard_input.just_pressed(KeyCode::KeyK)
+            || keyboard_input.just_pressed(KeyCode::KeyC);
+        actions.grab_held = keyboard_input.pressed(KeyCode::KeyJ)
+            || keyboard_input.pressed(KeyCode::KeyX);
 
         if actions.grab_held && *wall_contact != WallContact::None {
             facing.0 = match wall_contact {
