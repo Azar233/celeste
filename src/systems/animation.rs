@@ -2,17 +2,17 @@ use bevy::prelude::*;
 
 use crate::components::{
     AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, MovementInput,
-    PlayerAnimations, Velocity, WallContact, WallJumpTimer,
+    PlayerActionInput, PlayerAnimations, Velocity, WallContact, WallJumpTimer,
 };
 
 pub fn animate_sprite(
     time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(
         &mut AnimationTimer,
         &mut Sprite,
         &mut AnimationState,
         &PlayerAnimations,
+        &PlayerActionInput,
         &Velocity,
         &Facing,
         &Grounded,
@@ -28,6 +28,7 @@ pub fn animate_sprite(
         mut sprite,
         mut state,
         animations,
+        actions,
         velocity,
         facing,
         grounded,
@@ -39,10 +40,16 @@ pub fn animate_sprite(
     ) in
         &mut query
     {
-        let is_holding_wall = keyboard_input.pressed(KeyCode::KeyJ)
-            && !grounded.0
+        let is_facing_wall = match wall_contact {
+            WallContact::Left => facing.0 < 0.0,
+            WallContact::Right => facing.0 > 0.0,
+            WallContact::None => false,
+        };
+
+        let is_holding_wall = actions.grab_held
             && !dash_state.is_dashing
             && *wall_contact != WallContact::None
+            && is_facing_wall
             && wall_jump_timer.0 <= 0.0;
 
         let away_from_wall = match wall_contact {

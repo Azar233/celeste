@@ -11,6 +11,7 @@ pub const HALF_GRAVITY_THRESHOLD: f32 = 40.0;
 pub const APEX_HALF_GRAVITY_MULTIPLIER: f32 = 0.5;
 pub const LOW_JUMP_MULTIPLIER: f32 = 4.0;
 pub const FALL_MULTIPLIER: f32 = 1.2;
+pub const MAX_FALL_SPEED: f32 = 260.0;
 
 pub const GROUND_ACCEL: f32 = 1000.0;
 pub const GROUND_FRICTION: f32 = 800.0;
@@ -26,6 +27,7 @@ pub const WALL_KICK_LOCK: f32 = 0.20;
 pub const WALL_NEUTRAL_FORCE: Vec2 = Vec2::new(80.0, 300.0);
 pub const WALL_NEUTRAL_LOCK: f32 = 0.0;
 pub const WALL_CLIMB_JUMP_FORCE_Y: f32 = 260.0;
+pub const JUMP_AWAY_FROM_WALL: f32 = 140.0;
 pub const WALL_CLIMB_LOCK: f32 = 0.1;
 pub const UPWARD_CORNER_CORRECTION: i32 = 4;
 pub const DASH_CORNER_CORRECTION: i32 = 4;
