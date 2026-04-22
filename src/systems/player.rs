@@ -29,6 +29,8 @@ fn try_consume_ground_jump(jump_state: &mut JumpState, grounded: &Grounded, velo
         velocity.0.y = JUMP_VELOCITY;
         jump_state.jump_grace_timer = 0.0;
         jump_state.jump_buffer_timer = 0.0;
+        jump_state.super_jump_timer = 0.0;
+        jump_state.fast_jump_active = false;
         return true;
     }
 
@@ -188,7 +190,12 @@ fn resolve_player_state(
     if dash_state.is_dashing {
         PlayerState::Dash
     } else if current_state == PlayerState::Climb {
-        if !actions.grab_held {
+        let can_keep_climbing = actions.grab_held
+            && *wall_contact != WallContact::None
+            && is_facing_wall(facing, wall_contact)
+            && wall_jump_timer.0 <= 0.0;
+
+        if !can_keep_climbing {
             PlayerState::Normal
         } else {
             PlayerState::Climb
@@ -504,6 +511,8 @@ pub fn player_input(
             }
 
             jump_state.jump_buffer_timer = 0.0;
+            jump_state.super_jump_timer = 0.0;
+            jump_state.fast_jump_active = false;
             transition_player_state(&mut state_machine, PlayerState::Normal);
             return;
         }
@@ -530,6 +539,8 @@ pub fn player_input(
             }
 
             jump_state.jump_buffer_timer = 0.0;
+            jump_state.super_jump_timer = 0.0;
+            jump_state.fast_jump_active = false;
         }
     }
 }

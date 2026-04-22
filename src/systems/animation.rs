@@ -2,7 +2,8 @@ use bevy::prelude::*;
 
 use crate::components::{
     AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, MovementInput,
-    JumpState, PlayerActionInput, PlayerAnimations, Velocity, WallContact, WallJumpTimer,
+    JumpState, PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity,
+    WallContact, WallJumpTimer,
 };
 use crate::constants::FALL_FAST_ANIMATION_SPEED;
 
@@ -23,6 +24,7 @@ pub fn animate_sprite(
         &WallContact,
         &WallJumpTimer,
         &DashState,
+        &PlayerStateMachine,
     )>,
 ) {
     for (
@@ -40,19 +42,14 @@ pub fn animate_sprite(
         wall_contact,
         wall_jump_timer,
         dash_state,
+        state_machine,
     ) in
         &mut query
     {
-        let is_facing_wall = match wall_contact {
-            WallContact::Left => facing.0 < 0.0,
-            WallContact::Right => facing.0 > 0.0,
-            WallContact::None => false,
-        };
-
         let is_holding_wall = actions.grab_held
             && !dash_state.is_dashing
+            && state_machine.current == PlayerState::Climb
             && *wall_contact != WallContact::None
-            && is_facing_wall
             && wall_jump_timer.0 <= 0.0;
 
         let away_from_wall = match wall_contact {
