@@ -11,14 +11,17 @@ use crate::utils::dash_effect_color;
 pub fn emit_dash_trail(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(
-        &Transform,
-        &DashState,
-        &Grounded,
-        &Crouching,
-        &mut DashTrailEmitter,
-        Option<&Sprite>,
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &Transform,
+            &DashState,
+            &Grounded,
+            &Crouching,
+            &mut DashTrailEmitter,
+            Option<&Sprite>,
+        ),
+        With<Player>,
+    >,
 ) {
     let dt = time.delta_secs();
 
@@ -62,7 +65,9 @@ pub fn emit_dash_trail(
 
         for index in 0..DASH_TRAIL_PARTICLE_COUNT {
             let step = index as f32;
-            let position = base_pos + Vec2::new(face_offset, 3.0) + backward * (step * DASH_TRAIL_SPACING + 1.0);
+            let position = base_pos
+                + Vec2::new(face_offset, 3.0)
+                + backward * (step * DASH_TRAIL_SPACING + 1.0);
             let velocity = backward * (10.0 + step * 3.0);
             let size = 1.0_f32.max(1.6 - step * 0.03);
             let lifetime = DASH_TRAIL_LIFETIME + step * 0.004;

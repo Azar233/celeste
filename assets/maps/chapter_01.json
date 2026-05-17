@@ -1,0 +1,104 @@
+{
+  "id": "chapter_01",
+  "start_room": "room_00",
+  "rooms": [
+    {
+      "id": "room_00",
+      "bounds": { "x": 0.0, "y": 0.0, "w": 320.0, "h": 180.0 },
+      "default_spawn": "start",
+      "spawn_points": [
+        { "id": "start", "x": -132.0, "y": -40.0 },
+        { "id": "from_room_01", "x": 136.0, "y": -40.0 }
+      ],
+      "collision": [
+        { "kind": "solid_ground", "x": -110.0, "y": -78.0, "w": 132.0, "h": 24.0, "art_tag": "stone_floor_a" },
+        { "kind": "solid_ground", "x": 42.0, "y": -78.0, "w": 140.0, "h": 24.0, "art_tag": "stone_floor_a" },
+        { "kind": "wall_surface", "x": -28.0, "y": -34.0, "w": 16.0, "h": 112.0, "art_tag": "stone_wall_a" },
+        { "kind": "wall_surface", "x": 112.0, "y": -8.0, "w": 16.0, "h": 164.0, "art_tag": "stone_wall_a" },
+        { "kind": "camera_zone", "x": 0.0, "y": 0.0, "w": 320.0, "h": 180.0 }
+      ],
+      "hazards": [
+        { "x": -48.0, "y": -90.0, "w": 28.0, "h": 8.0 }
+      ],
+      "checkpoints": [
+        { "id": "room_00_cp", "x": 84.0, "y": -56.0 }
+      ],
+      "exits": [
+        {
+          "id": "room_00_to_01",
+          "side": "right",
+          "target_room": "room_01",
+          "target_spawn": "left_entry",
+          "x": 152.0,
+          "y": -20.0,
+          "w": 12.0,
+          "h": 96.0,
+          "preserve_momentum": true
+        }
+      ]
+    },
+    {
+      "id": "room_01",
+      "bounds": { "x": 320.0, "y": 0.0, "w": 320.0, "h": 180.0 },
+      "default_spawn": "left_entry",
+      "spawn_points": [
+        { "id": "left_entry", "x": 176.0, "y": -36.0 },
+        { "id": "top_entry", "x": 324.0, "y": 46.0 }
+      ],
+      "collision": [
+        { "kind": "solid_ground", "x": 214.0, "y": -78.0, "w": 92.0, "h": 24.0, "art_tag": "stone_floor_b" },
+        { "kind": "solid_ground", "x": 344.0, "y": -32.0, "w": 88.0, "h": 16.0, "art_tag": "stone_floor_b" },
+        { "kind": "wall_surface", "x": 274.0, "y": 2.0, "w": 16.0, "h": 164.0, "art_tag": "stone_wall_b" },
+        { "kind": "wall_surface", "x": 398.0, "y": 28.0, "w": 16.0, "h": 120.0, "art_tag": "stone_wall_b" },
+        { "kind": "camera_zone", "x": 320.0, "y": 0.0, "w": 320.0, "h": 180.0 }
+      ],
+      "hazards": [],
+      "checkpoints": [
+        { "id": "room_01_cp", "x": 360.0, "y": -10.0 }
+      ],
+      "exits": [
+        {
+          "id": "room_01_to_00",
+          "side": "left",
+          "target_room": "room_00",
+          "target_spawn": "from_room_01",
+          "x": 166.0,
+          "y": -16.0,
+          "w": 12.0,
+          "h": 88.0,
+          "preserve_momentum": true
+        },
+        {
+          "id": "room_01_to_02",
+          "side": "top",
+          "target_room": "room_02",
+          "target_spawn": "bottom_entry",
+          "x": 346.0,
+          "y": 84.0,
+          "w": 64.0,
+          "h": 12.0,
+          "preserve_momentum": false
+        }
+      ]
+    },
+    {
+      "id": "room_02",
+      "bounds": { "x": 320.0, "y": 180.0, "w": 320.0, "h": 180.0 },
+      "default_spawn": "bottom_entry",
+      "spawn_points": [
+        { "id": "bottom_entry", "x": 346.0, "y": 104.0 }
+      ],
+      "collision": [
+        { "kind": "solid_ground", "x": 258.0, "y": 102.0, "w": 84.0, "h": 16.0, "art_tag": "stone_floor_c" },
+        { "kind": "solid_ground", "x": 386.0, "y": 154.0, "w": 88.0, "h": 16.0, "art_tag": "stone_floor_c" },
+        { "kind": "wall_surface", "x": 306.0, "y": 142.0, "w": 16.0, "h": 92.0, "art_tag": "stone_wall_c" },
+        { "kind": "camera_zone", "x": 320.0, "y": 180.0, "w": 320.0, "h": 180.0 }
+      ],
+      "hazards": [],
+      "checkpoints": [
+        { "id": "room_02_cp", "x": 400.0, "y": 168.0 }
+      ],
+      "exits": []
+    }
+  ]
+}

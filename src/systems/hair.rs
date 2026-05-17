@@ -1,27 +1,32 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    AnimationState, DashState, Facing, Ground, Hair, HairBangs, HairMaterial, HairSegment,
-    Player, Velocity,
+    AnimationState, DashState, Facing, Ground, Hair, HairBangs, HairMaterial, HairSegment, Player,
+    Velocity,
 };
 use crate::constants::{
     BANGS_Z, HAIR_FOLLOW_STRENGTH, HAIR_GRAVITY, HAIR_RESET_DISTANCE, HAIR_ROOT_OFFSET,
     HAIR_SEGMENT_LEN, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
 };
-use crate::utils::{bangs_base_offset, color_to_vec4, hair_rest_offset, initial_hair_positions, mirrored_offset};
+use crate::utils::{
+    bangs_base_offset, color_to_vec4, hair_rest_offset, initial_hair_positions, mirrored_offset,
+};
 
 pub fn update_hair(
     time: Res<Time>,
     mut materials: ResMut<Assets<HairMaterial>>,
-    mut player_query: Query<(
-        &Transform,
-        &mut Hair,
-        &Facing,
-        &AnimationState,
-        &Sprite,
-        &Velocity,
-        &DashState,
-    ), With<Player>>,
+    mut player_query: Query<
+        (
+            &Transform,
+            &mut Hair,
+            &Facing,
+            &AnimationState,
+            &Sprite,
+            &Velocity,
+            &DashState,
+        ),
+        With<Player>,
+    >,
     mut hair_render_queries: ParamSet<(
         Query<&mut Transform, (With<HairSegment>, Without<Player>)>,
         Query<&MeshMaterial2d<HairMaterial>, (With<HairSegment>, Without<Player>)>,
@@ -30,14 +35,20 @@ pub fn update_hair(
 ) {
     let dt = time.delta_secs();
 
-    for (player_transform, mut hair, facing, anim_state, sprite, velocity, dash_state) in &mut player_query {
+    for (player_transform, mut hair, facing, anim_state, sprite, velocity, dash_state) in
+        &mut player_query
+    {
         let target_color = if dash_state.dashes_remaining > 0 {
             Color::srgb(0.9, 0.25, 0.3)
         } else {
             Color::srgb(0.3, 0.7, 0.95)
         };
 
-        let frame_index = sprite.texture_atlas.as_ref().map(|atlas| atlas.index).unwrap_or(0);
+        let frame_index = sprite
+            .texture_atlas
+            .as_ref()
+            .map(|atlas| atlas.index)
+            .unwrap_or(0);
 
         let hair_anim_offset = match anim_state {
             AnimationState::Idle => match frame_index {
@@ -76,11 +87,14 @@ pub fn update_hair(
         if hair.sim_positions.len() != HAIR_SEGMENT_SIZES.len()
             || hair.sim_positions[0].distance(root_pos) > HAIR_RESET_DISTANCE
         {
-            hair.sim_positions = initial_hair_positions(player_transform.translation.truncate(), facing.0);
+            hair.sim_positions =
+                initial_hair_positions(player_transform.translation.truncate(), facing.0);
         }
 
         if let Some(bangs_entity) = hair.bangs_entity {
-            if let Ok((mut bangs_transform, mut bangs_sprite)) = hair_render_queries.p2().get_mut(bangs_entity) {
+            if let Ok((mut bangs_transform, mut bangs_sprite)) =
+                hair_render_queries.p2().get_mut(bangs_entity)
+            {
                 bangs_transform.translation = bangs_pos.extend(BANGS_Z);
                 bangs_sprite.color = target_color;
                 bangs_sprite.flip_x = facing.0 < 0.0;
@@ -103,7 +117,8 @@ pub fn update_hair(
             curr_pos += force * dt * 16.0;
 
             if dash_state.is_dashing {
-                curr_pos += Vec2::new(-dash_state.direction.x, -dash_state.direction.y) * (0.18 * index as f32);
+                curr_pos += Vec2::new(-dash_state.direction.x, -dash_state.direction.y)
+                    * (0.18 * index as f32);
             }
 
             let diff = curr_pos - prev_pos;
@@ -112,7 +127,8 @@ pub fn update_hair(
             if dist > HAIR_SEGMENT_LEN {
                 curr_pos = prev_pos + diff.normalize() * HAIR_SEGMENT_LEN;
             } else if dist < HAIR_SEGMENT_LEN * 0.55 {
-                curr_pos = prev_pos + (rest_target - prev_pos).normalize_or_zero() * HAIR_SEGMENT_LEN;
+                curr_pos =
+                    prev_pos + (rest_target - prev_pos).normalize_or_zero() * HAIR_SEGMENT_LEN;
             }
 
             hair.sim_positions[index] = curr_pos;

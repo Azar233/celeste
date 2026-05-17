@@ -1,0 +1,279 @@
+use bevy::prelude::*;
+
+use crate::components::{
+    CheckpointMarker, ClimbTopOutState, ColliderSize, Crouching, DashSlideState, DashState, Facing,
+    Grounded, Hair, Hazard, LevelEntity, Player, PlayerState, PlayerStateMachine, RoomExitMarker,
+    Velocity, WallContact, WeatherOverlay,
+};
+use crate::constants::{PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z};
+use crate::level::{ActiveRoom, LoadedMap};
+use crate::scene::{LevelArt, spawn_room_geometry};
+use crate::utils::{check_collision, initial_hair_positions};
+
+fn reset_player_to_spawn(
+    player_transform: &mut Transform,
+    velocity: &mut Velocity,
+    grounded: &mut Grounded,
+    wall_contact: &mut WallContact,
+    collider_size: &mut ColliderSize,
+    crouching: &mut Crouching,
+    dash_state: &mut DashState,
+    dash_slide: &mut DashSlideState,
+    state_machine: &mut PlayerStateMachine,
+    climb_top_out: &mut ClimbTopOutState,
+    hair: &mut Hair,
+    facing: &Facing,
+    spawn_point: Vec2,
+    preserve_momentum: bool,
+) {
+    player_transform.translation = Vec3::new(spawn_point.x, spawn_point.y, PLAYER_RENDER_Z);
+    if !preserve_momentum {
+        velocity.0 = Vec2::ZERO;
+    }
+    grounded.0 = false;
+    *wall_contact = WallContact::None;
+    crouching.0 = false;
+    dash_state.is_dashing = false;
+    dash_state.timer = 0.0;
+    dash_slide.timer = 0.0;
+    dash_slide.direction = 0.0;
+    climb_top_out.active = false;
+    climb_top_out.timer = 0.0;
+    climb_top_out.duration = 0.0;
+    climb_top_out.start = player_transform.translation;
+    climb_top_out.target = player_transform.translation;
+    collider_size.0 = PLAYER_COLLIDER_SIZE;
+    state_machine.current = PlayerState::Normal;
+    state_machine.previous = PlayerState::Normal;
+    hair.sim_positions = initial_hair_positions(spawn_point, facing.0);
+}
+
+pub fn update_checkpoint_respawn(
+    mut active_room: ResMut<ActiveRoom>,
+    player_query: Query<(&Transform, &ColliderSize), With<Player>>,
+    checkpoints: Query<(&Transform, &Sprite, &CheckpointMarker), Without<Player>>,
+) {
+    let Ok((player_transform, player_size)) = player_query.get_single() else {
+        return;
+    };
+
+    for (checkpoint_transform, checkpoint_sprite, checkpoint) in &checkpoints {
+        let Some(checkpoint_size) = checkpoint_sprite.custom_size else {
+            continue;
+        };
+
+        if check_collision(
+            player_transform.translation,
+            player_size.0,
+            checkpoint_transform.translation,
+            checkpoint_size,
+        ) {
+            let _checkpoint_id = &checkpoint.id;
+            active_room.respawn_point = checkpoint_transform.translation.truncate();
+        }
+    }
+}
+
+pub fn handle_hazard_respawn(
+    active_room: Res<ActiveRoom>,
+    hazards: Query<(&Transform, &Sprite), (With<Hazard>, Without<Player>)>,
+    mut player_query: Query<
+        (
+            &mut Transform,
+            &mut Velocity,
+            &mut Grounded,
+            &mut WallContact,
+            &mut ColliderSize,
+            &mut Crouching,
+            &mut DashState,
+            &mut DashSlideState,
+            &mut PlayerStateMachine,
+            &mut ClimbTopOutState,
+            &mut Hair,
+            &Facing,
+        ),
+        With<Player>,
+    >,
+) {
+    let Ok((
+        mut player_transform,
+        mut velocity,
+        mut grounded,
+        mut wall_contact,
+        mut collider_size,
+        mut crouching,
+        mut dash_state,
+        mut dash_slide,
+        mut state_machine,
+        mut climb_top_out,
+        mut hair,
+        facing,
+    )) = player_query.get_single_mut()
+    else {
+        return;
+    };
+
+    let player_size = collider_size.0;
+    for (hazard_transform, hazard_sprite) in &hazards {
+        let Some(hazard_size) = hazard_sprite.custom_size else {
+            continue;
+        };
+
+        if check_collision(
+            player_transform.translation,
+            player_size,
+            hazard_transform.translation,
+            hazard_size,
+        ) {
+            reset_player_to_spawn(
+                &mut player_transform,
+                &mut velocity,
+                &mut grounded,
+                &mut wall_contact,
+                &mut collider_size,
+                &mut crouching,
+                &mut dash_state,
+                &mut dash_slide,
+                &mut state_machine,
+                &mut climb_top_out,
+                &mut hair,
+                facing,
+                active_room.respawn_point,
+                false,
+            );
+            break;
+        }
+    }
+}
+
+pub fn handle_room_transitions(
+    mut commands: Commands,
+    loaded_map: Res<LoadedMap>,
+    level_art: Res<LevelArt>,
+    mut active_room: ResMut<ActiveRoom>,
+    level_entities: Query<Entity, With<LevelEntity>>,
+    mut param_set: ParamSet<(
+        Query<(&Transform, &ColliderSize), With<Player>>,
+        Query<(&Transform, &Sprite, &RoomExitMarker), Without<Player>>,
+        Query<
+            (
+                &mut Transform,
+                &mut Velocity,
+                &mut Grounded,
+                &mut WallContact,
+                &mut ColliderSize,
+                &mut Crouching,
+                &mut DashState,
+                &mut DashSlideState,
+                &mut PlayerStateMachine,
+                &mut ClimbTopOutState,
+                &mut Hair,
+                &Facing,
+            ),
+            With<Player>,
+        >,
+        Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
+        Query<&mut Transform, (With<WeatherOverlay>, (Without<Player>, Without<Camera2d>))>,
+    )>,
+) {
+    let player_query = param_set.p0();
+    let Ok((player_transform, collider_size)) = player_query.get_single() else {
+        return;
+    };
+
+    let player_translation = player_transform.translation;
+    let player_size = collider_size.0;
+    let triggered_exit = {
+        let exits_query = param_set.p1();
+        let mut result: Option<(String, String, bool)> = None;
+
+        for (exit_transform, exit_sprite, exit) in &exits_query {
+            let Some(exit_size) = exit_sprite.custom_size else {
+                continue;
+            };
+
+            if check_collision(
+                player_translation,
+                player_size,
+                exit_transform.translation,
+                exit_size,
+            ) {
+                let _exit_id = &exit.id;
+                result = Some((
+                    exit.target_room.clone(),
+                    exit.target_spawn.clone(),
+                    exit.preserve_momentum,
+                ));
+                break;
+            }
+        }
+
+        result
+    };
+
+    let Some((target_room_id, target_spawn_id, preserve_momentum)) = triggered_exit else {
+        return;
+    };
+
+    let Some(target_room) = loaded_map.data.room(&target_room_id) else {
+        return;
+    };
+    let Some(target_spawn) = target_room.spawn_point(&target_spawn_id) else {
+        return;
+    };
+
+    let mut player_query = param_set.p2();
+    let Ok((
+        mut player_transform,
+        mut velocity,
+        mut grounded,
+        mut wall_contact,
+        mut collider_size,
+        mut crouching,
+        mut dash_state,
+        mut dash_slide,
+        mut state_machine,
+        mut climb_top_out,
+        mut hair,
+        facing,
+    )) = player_query.get_single_mut()
+    else {
+        return;
+    };
+
+    for entity in &level_entities {
+        commands.entity(entity).despawn();
+    }
+
+    spawn_room_geometry(&mut commands, target_room, &level_art);
+
+    active_room.room_id = target_room.id.clone();
+    active_room.respawn_point = target_spawn;
+
+    reset_player_to_spawn(
+        &mut player_transform,
+        &mut velocity,
+        &mut grounded,
+        &mut wall_contact,
+        &mut collider_size,
+        &mut crouching,
+        &mut dash_state,
+        &mut dash_slide,
+        &mut state_machine,
+        &mut climb_top_out,
+        &mut hair,
+        facing,
+        target_spawn,
+        preserve_momentum,
+    );
+
+    for mut camera_transform in &mut param_set.p3() {
+        camera_transform.translation.x = target_room.bounds.center().x;
+        camera_transform.translation.y = target_room.bounds.center().y;
+    }
+
+    for mut overlay_transform in &mut param_set.p4() {
+        overlay_transform.translation.x = target_room.bounds.center().x;
+        overlay_transform.translation.y = target_room.bounds.center().y;
+    }
+}

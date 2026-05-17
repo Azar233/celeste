@@ -1,18 +1,49 @@
+use std::collections::HashSet;
+
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 use bevy::sprite::Anchor;
 
 use crate::components::{
-    AnimationState, AnimationTimer, ColliderSize, Crouching, DashSlideState, DashState,
-    DashTrailEmitter, Facing, Ground, Grounded, Hair, HairBangs, HairMaterial, HairSegment,
-    JumpState, MovementInput, Player, PlayerActionInput, PlayerAnimations, PlayerState,
-    PlayerStateMachine, Velocity, WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
+    AnimationState, AnimationTimer, CheckpointMarker, ClimbTopOutState, ColliderSize, Crouching,
+    DashSlideState, DashState, DashTrailEmitter, Facing, Ground, Grounded, Hair, HairBangs,
+    HairMaterial, HairSegment, Hazard, JumpState, LevelEntity, MovementInput, Player,
+    PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, RoomExitMarker, Velocity,
+    WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
 };
 use crate::constants::{
     BANGS_Z, HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
-    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, SPAWN_POSITION, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
+    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
+};
+use crate::level::{
+    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, ExitSide, LoadedMap, RectData,
+    RoomData, load_map_from_path,
 };
 use crate::utils::{color_to_vec4, initial_hair_positions};
+
+const TILE_SIZE: f32 = 8.0;
+const DIRT_TILE_COLUMNS: usize = 6;
+const DIRT_TILE_ROWS: usize = 15;
+const DANGER_UPDOWN_SIZE: Vec2 = Vec2::new(10.0, 9.0);
+const DANGER_LEFTRIGHT_SIZE: Vec2 = Vec2::new(9.0, 10.0);
+
+#[derive(Resource, Clone)]
+pub struct LevelArt {
+    pub dirt_texture: Handle<Image>,
+    pub dirt_layout: Handle<TextureAtlasLayout>,
+    pub danger_up: Handle<Image>,
+    pub danger_down: Handle<Image>,
+    pub danger_left: Handle<Image>,
+    pub danger_right: Handle<Image>,
+}
+
+#[derive(Clone, Copy)]
+enum HazardDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
 
 pub struct ScenePlugin;
 
@@ -47,6 +78,41 @@ pub fn setup(
     let climb_lookback_layout_handle = texture_atlas_layouts.add(climb_lookback_layout);
     let bangs_texture = asset_server.load("bangs.png");
 
+    let level_art = LevelArt {
+        dirt_texture: asset_server.load("figs/tilesets/dirt.png"),
+        dirt_layout: texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(TILE_SIZE as u32),
+            DIRT_TILE_COLUMNS as u32,
+            DIRT_TILE_ROWS as u32,
+            None,
+            None,
+        )),
+        danger_up: asset_server.load("figs/danger/outline_up00.png"),
+        danger_down: asset_server.load("figs/danger/outline_down00.png"),
+        danger_left: asset_server.load("figs/danger/outline_left00.png"),
+        danger_right: asset_server.load("figs/danger/outline_right00.png"),
+    };
+
+    let map = load_map_from_path(DEFAULT_MAP_PATH)
+        .unwrap_or_else(|error| panic!("unable to load initial map data: {error}"));
+    let room = map
+        .starting_room()
+        .unwrap_or_else(|| panic!("map '{}' is missing its start room", map.id));
+    let spawn_position = room.default_spawn_point().unwrap_or_else(|| {
+        panic!(
+            "room '{}' is missing default spawn point '{}'",
+            room.id, room.default_spawn
+        )
+    });
+
+    commands.insert_resource(LoadedMap { data: map.clone() });
+    commands.insert_resource(ActiveRoom {
+        map_id: map.id.clone(),
+        room_id: room.id.clone(),
+        respawn_point: spawn_position,
+    });
+    commands.insert_resource(level_art.clone());
+
     spawn_camera(&mut commands);
     spawn_weather_overlay(&mut commands, &mut meshes, &mut weather_materials);
 
@@ -68,10 +134,11 @@ pub fn setup(
         climb_layout_handle,
         climb_lookback_texture,
         climb_lookback_layout_handle,
+        spawn_position,
         hair_entities,
         bangs_entity,
     );
-    spawn_level_geometry(&mut commands);
+    spawn_room_geometry(&mut commands, room, &level_art);
 }
 
 fn spawn_camera(commands: &mut Commands) {
@@ -139,10 +206,11 @@ fn spawn_player(
     climb_layout_handle: Handle<TextureAtlasLayout>,
     climb_lookback_texture: Handle<Image>,
     climb_lookback_layout_handle: Handle<TextureAtlasLayout>,
+    spawn_position: Vec2,
     hair_entities: Vec<Entity>,
     bangs_entity: Entity,
 ) {
-    let initial_hair_positions = initial_hair_positions(SPAWN_POSITION.truncate(), 1.0);
+    let initial_hair_positions = initial_hair_positions(spawn_position, 1.0);
 
     let mut player = commands.spawn((
         Player,
@@ -184,6 +252,13 @@ fn spawn_player(
     player.insert((
         Crouching(false),
         ColliderSize(PLAYER_COLLIDER_SIZE),
+        ClimbTopOutState {
+            active: false,
+            timer: 0.0,
+            duration: 0.0,
+            start: Vec3::ZERO,
+            target: Vec3::ZERO,
+        },
         DashSlideState {
             timer: 0.0,
             direction: 0.0,
@@ -208,40 +283,314 @@ fn spawn_player(
             anchor: Anchor::Custom(Vec2::new(0.0, -0.235)),
             ..default()
         },
-        Transform::from_xyz(SPAWN_POSITION.x, SPAWN_POSITION.y, PLAYER_RENDER_Z),
+        Transform::from_xyz(spawn_position.x, spawn_position.y, PLAYER_RENDER_Z),
     ));
 }
 
-fn spawn_level_geometry(commands: &mut Commands) {
-    commands.spawn((
-        Ground,
-        Sprite {
-            color: Color::srgb(0.2, 0.2, 0.2),
-            custom_size: Some(Vec2::new(400.0, 24.0)),
+pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: &LevelArt) {
+    let solid_cells = collect_solid_cells(room);
+
+    for collision in &room.collision {
+        let color = match collision.kind {
+            CollisionKind::SolidGround
+            | CollisionKind::WallSurface
+            | CollisionKind::OneWayPlatform => Color::NONE,
+            CollisionKind::CameraZone => Color::srgba(0.2, 0.4, 0.8, 0.18),
+            CollisionKind::EffectZone => Color::srgba(0.2, 0.8, 0.6, 0.18),
+        };
+
+        let sprite = Sprite {
+            color,
+            custom_size: Some(Vec2::new(collision.w, collision.h)),
             ..default()
-        },
-        Transform::from_xyz(0.0, -80.0, 0.0),
-    ));
+        };
+        let transform = Transform::from_xyz(collision.x, collision.y, 0.0);
+
+        match collision.kind {
+            CollisionKind::SolidGround
+            | CollisionKind::WallSurface
+            | CollisionKind::OneWayPlatform => {
+                commands.spawn((Ground, LevelEntity, sprite, transform));
+                spawn_dirt_tiles(commands, collision, &solid_cells, level_art);
+            }
+            CollisionKind::CameraZone | CollisionKind::EffectZone => {
+                commands.spawn((LevelEntity, sprite, transform));
+            }
+        }
+    }
+
+    for hazard in &room.hazards {
+        commands.spawn((
+            Hazard,
+            LevelEntity,
+            Sprite {
+                color: Color::NONE,
+                custom_size: Some(hazard.size()),
+                ..default()
+            },
+            Transform::from_xyz(hazard.x, hazard.y, 0.0),
+        ));
+        spawn_hazard_tiles(commands, hazard, &solid_cells, level_art);
+    }
+
+    for checkpoint in &room.checkpoints {
+        commands.spawn((
+            CheckpointMarker {
+                id: checkpoint.id.clone(),
+            },
+            LevelEntity,
+            Sprite {
+                color: Color::srgb(0.95, 0.85, 0.2),
+                custom_size: Some(Vec2::new(10.0, 18.0)),
+                ..default()
+            },
+            Transform::from_xyz(checkpoint.x, checkpoint.y, 0.0),
+        ));
+    }
+
+    for exit in &room.exits {
+        let tint = match exit.side {
+            ExitSide::Left | ExitSide::Right => Color::srgba(0.3, 0.9, 0.5, 0.25),
+            ExitSide::Top | ExitSide::Bottom => Color::srgba(0.3, 0.6, 1.0, 0.25),
+        };
+
+        commands.spawn((
+            RoomExitMarker {
+                id: exit.id.clone(),
+                target_room: exit.target_room.clone(),
+                target_spawn: exit.target_spawn.clone(),
+                preserve_momentum: exit.preserve_momentum,
+            },
+            LevelEntity,
+            Sprite {
+                color: tint,
+                custom_size: Some(Vec2::new(exit.w, exit.h)),
+                ..default()
+            },
+            Transform::from_xyz(exit.x, exit.y, 0.0),
+        ));
+    }
 
     commands.spawn((
-        Ground,
+        LevelEntity,
+        Name::new(format!("room_bounds:{}", room.id)),
         Sprite {
-            color: Color::srgb(0.4, 0.4, 0.4),
-            custom_size: Some(Vec2::new(16.0, 200.0)),
+            color: Color::srgba(1.0, 1.0, 1.0, 0.05),
+            custom_size: Some(room.bounds.size()),
             ..default()
         },
-        Transform::from_xyz(-100.0, 0.0, 0.0),
+        Transform::from_xyz(room.bounds.x, room.bounds.y, -1.0),
     ));
+}
 
-    commands.spawn((
-        Ground,
-        Sprite {
-            color: Color::srgb(0.4, 0.4, 0.4),
-            custom_size: Some(Vec2::new(16.0, 150.0)),
-            ..default()
-        },
-        Transform::from_xyz(80.0, -20.0, 0.0),
-    ));
+fn collect_solid_cells(room: &RoomData) -> HashSet<(i32, i32)> {
+    let mut cells = HashSet::new();
+
+    for collision in &room.collision {
+        if !matches!(
+            collision.kind,
+            CollisionKind::SolidGround | CollisionKind::WallSurface | CollisionKind::OneWayPlatform
+        ) {
+            continue;
+        }
+
+        let (min_x, max_x, min_y, max_y) =
+            rect_to_grid_bounds(collision.x, collision.y, collision.w, collision.h);
+        for gx in min_x..=max_x {
+            for gy in min_y..=max_y {
+                cells.insert((gx, gy));
+            }
+        }
+    }
+
+    cells
+}
+
+fn rect_to_grid_bounds(x: f32, y: f32, w: f32, h: f32) -> (i32, i32, i32, i32) {
+    let min_x = ((x - w * 0.5) / TILE_SIZE).floor() as i32;
+    let max_x = ((x + w * 0.5) / TILE_SIZE).ceil() as i32 - 1;
+    let min_y = ((y - h * 0.5) / TILE_SIZE).floor() as i32;
+    let max_y = ((y + h * 0.5) / TILE_SIZE).ceil() as i32 - 1;
+    (min_x, max_x, min_y, max_y)
+}
+
+fn spawn_dirt_tiles(
+    commands: &mut Commands,
+    collision: &CollisionRect,
+    solid_cells: &HashSet<(i32, i32)>,
+    level_art: &LevelArt,
+) {
+    let (min_x, max_x, min_y, max_y) =
+        rect_to_grid_bounds(collision.x, collision.y, collision.w, collision.h);
+
+    for gx in min_x..=max_x {
+        for gy in min_y..=max_y {
+            if !solid_cells.contains(&(gx, gy)) {
+                continue;
+            }
+
+            let atlas_index = choose_dirt_tile(tile_exposure_mask(gx, gy, solid_cells), gx, gy);
+            let world_x = gx as f32 * TILE_SIZE + TILE_SIZE * 0.5;
+            let world_y = gy as f32 * TILE_SIZE + TILE_SIZE * 0.5;
+
+            commands.spawn((
+                LevelEntity,
+                Sprite {
+                    image: level_art.dirt_texture.clone(),
+                    texture_atlas: Some(TextureAtlas {
+                        layout: level_art.dirt_layout.clone(),
+                        index: atlas_index,
+                    }),
+                    ..default()
+                },
+                Transform::from_xyz(world_x, world_y, 0.2),
+            ));
+        }
+    }
+}
+
+fn tile_exposure_mask(gx: i32, gy: i32, solid_cells: &HashSet<(i32, i32)>) -> u8 {
+    let mut mask = 0u8;
+
+    if !solid_cells.contains(&(gx, gy + 1)) {
+        mask |= 1;
+    }
+    if !solid_cells.contains(&(gx, gy - 1)) {
+        mask |= 2;
+    }
+    if !solid_cells.contains(&(gx - 1, gy)) {
+        mask |= 4;
+    }
+    if !solid_cells.contains(&(gx + 1, gy)) {
+        mask |= 8;
+    }
+
+    mask
+}
+
+fn choose_dirt_tile(mask: u8, gx: i32, gy: i32) -> usize {
+    let candidates: &[usize] = match mask {
+        0 => &[
+            4, 5, 10, 11, 16, 17, 22, 23, 28, 29, 34, 35, 40, 41, 46, 47, 52, 53, 58, 59, 64, 65,
+            70, 71, 76, 77, 82, 83, 88, 89,
+        ],
+        1 => &[3],
+        2 => &[6],
+        4 => &[13, 14, 16],
+        8 => &[19],
+        5 => &[12, 66, 67, 68, 69],
+        9 => &[0, 1, 18, 20, 72, 73, 74, 75],
+        6 => &[8, 9, 78, 79, 80, 81],
+        10 => &[7, 84, 85, 86, 87],
+        3 => &[3, 6],
+        12 => &[13, 19],
+        7 => &[24, 26, 27, 48, 49, 50, 51],
+        11 => &[25, 27, 54, 55, 56, 57, 62],
+        13 => &[30, 32, 33, 36, 37, 38, 39],
+        14 => &[31, 42, 43, 44, 45],
+        15 => &[60, 61, 63],
+        _ => &[4, 5],
+    };
+
+    let seed = (gx.wrapping_mul(73856093) ^ gy.wrapping_mul(19349663)).unsigned_abs() as usize;
+    candidates[seed % candidates.len()]
+}
+
+fn spawn_hazard_tiles(
+    commands: &mut Commands,
+    hazard: &RectData,
+    solid_cells: &HashSet<(i32, i32)>,
+    level_art: &LevelArt,
+) {
+    let direction = detect_hazard_direction(hazard, solid_cells);
+    let (image, tile_size, horizontal) = match direction {
+        HazardDirection::Up => (level_art.danger_up.clone(), DANGER_UPDOWN_SIZE, true),
+        HazardDirection::Down => (level_art.danger_down.clone(), DANGER_UPDOWN_SIZE, true),
+        HazardDirection::Left => (level_art.danger_left.clone(), DANGER_LEFTRIGHT_SIZE, false),
+        HazardDirection::Right => (level_art.danger_right.clone(), DANGER_LEFTRIGHT_SIZE, false),
+    };
+
+    if horizontal {
+        let count = ((hazard.w / TILE_SIZE).round() as i32).max(1);
+        let start_x = hazard.x - count as f32 * TILE_SIZE * 0.5 + TILE_SIZE * 0.5;
+        for i in 0..count {
+            commands.spawn((
+                LevelEntity,
+                Sprite {
+                    image: image.clone(),
+                    custom_size: Some(tile_size),
+                    ..default()
+                },
+                Transform::from_xyz(start_x + i as f32 * TILE_SIZE, hazard.y, 0.3),
+            ));
+        }
+    } else {
+        let count = ((hazard.h / TILE_SIZE).round() as i32).max(1);
+        let start_y = hazard.y - count as f32 * TILE_SIZE * 0.5 + TILE_SIZE * 0.5;
+        for i in 0..count {
+            commands.spawn((
+                LevelEntity,
+                Sprite {
+                    image: image.clone(),
+                    custom_size: Some(tile_size),
+                    ..default()
+                },
+                Transform::from_xyz(hazard.x, start_y + i as f32 * TILE_SIZE, 0.3),
+            ));
+        }
+    }
+}
+
+fn detect_hazard_direction(
+    hazard: &RectData,
+    solid_cells: &HashSet<(i32, i32)>,
+) -> HazardDirection {
+    let (min_x, max_x, min_y, max_y) = rect_to_grid_bounds(hazard.x, hazard.y, hazard.w, hazard.h);
+    let mut up_score = 0;
+    let mut down_score = 0;
+    let mut left_score = 0;
+    let mut right_score = 0;
+
+    for gx in min_x..=max_x {
+        if solid_cells.contains(&(gx, min_y - 1)) {
+            up_score += 1;
+        }
+        if solid_cells.contains(&(gx, max_y + 1)) {
+            down_score += 1;
+        }
+    }
+
+    for gy in min_y..=max_y {
+        if solid_cells.contains(&(min_x - 1, gy)) {
+            right_score += 1;
+        }
+        if solid_cells.contains(&(max_x + 1, gy)) {
+            left_score += 1;
+        }
+    }
+
+    let prefer_horizontal = hazard.w >= hazard.h;
+    let scores = if prefer_horizontal {
+        [
+            (HazardDirection::Up, up_score),
+            (HazardDirection::Down, down_score),
+            (HazardDirection::Left, left_score),
+            (HazardDirection::Right, right_score),
+        ]
+    } else {
+        [
+            (HazardDirection::Left, left_score),
+            (HazardDirection::Right, right_score),
+            (HazardDirection::Up, up_score),
+            (HazardDirection::Down, down_score),
+        ]
+    };
+
+    scores
+        .into_iter()
+        .max_by_key(|(_, score)| *score)
+        .map(|(direction, _)| direction)
+        .unwrap_or(HazardDirection::Up)
 }
 
 pub fn debug_gizmos(mut gizmos: Gizmos, query: Query<(&Transform, &ColliderSize), With<Player>>) {
@@ -259,7 +608,10 @@ fn spawn_weather_overlay(
     meshes: &mut ResMut<Assets<Mesh>>,
     weather_materials: &mut ResMut<Assets<WeatherMaterial>>,
 ) {
-    let weather_mesh = meshes.add(Rectangle::new(WEATHER_OVERLAY_SIZE.x, WEATHER_OVERLAY_SIZE.y));
+    let weather_mesh = meshes.add(Rectangle::new(
+        WEATHER_OVERLAY_SIZE.x,
+        WEATHER_OVERLAY_SIZE.y,
+    ));
     let weather_material = weather_materials.add(WeatherMaterial {
         weather_data: Vec4::ZERO,
     });

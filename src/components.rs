@@ -26,6 +26,25 @@ pub struct Facing(pub f32);
 pub struct Ground;
 
 #[derive(Component)]
+pub struct Hazard;
+
+#[derive(Component)]
+pub struct CheckpointMarker {
+    pub id: String,
+}
+
+#[derive(Component)]
+pub struct RoomExitMarker {
+    pub id: String,
+    pub target_room: String,
+    pub target_spawn: String,
+    pub preserve_momentum: bool,
+}
+
+#[derive(Component)]
+pub struct LevelEntity;
+
+#[derive(Component)]
 pub struct JumpState {
     pub jump_grace_timer: f32,
     pub jump_buffer_timer: f32,
@@ -39,6 +58,7 @@ pub struct WallJumpTimer(pub f32);
 pub enum PlayerState {
     Normal,
     Climb,
+    TopOut,
     Dash,
 }
 
@@ -60,6 +80,15 @@ pub struct DashState {
 pub struct DashSlideState {
     pub timer: f32,
     pub direction: f32,
+}
+
+#[derive(Component)]
+pub struct ClimbTopOutState {
+    pub active: bool,
+    pub timer: f32,
+    pub duration: f32,
+    pub start: Vec3,
+    pub target: Vec3,
 }
 
 #[derive(Component)]
