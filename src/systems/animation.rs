@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, MovementInput,
-    JumpState, PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity,
+    AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, JumpState,
+    MovementInput, PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity,
     WallContact, WallJumpTimer,
 };
 use crate::constants::FALL_FAST_ANIMATION_SPEED;
@@ -43,27 +43,37 @@ pub fn animate_sprite(
         wall_jump_timer,
         dash_state,
         state_machine,
-    ) in
-        &mut query
+    ) in &mut query
     {
-        let is_holding_wall = actions.grab_held
-            && !dash_state.is_dashing
-            && state_machine.current == PlayerState::Climb
-            && *wall_contact != WallContact::None
-            && wall_jump_timer.0 <= 0.0;
+        let is_top_out = state_machine.current == PlayerState::TopOut;
+        let is_facing_wall = match wall_contact {
+            WallContact::Left => facing.0 < 0.0,
+            WallContact::Right => facing.0 > 0.0,
+            WallContact::None => false,
+        };
+
+        let is_holding_wall = is_top_out
+            || (actions.grab_held
+                && !dash_state.is_dashing
+                && *wall_contact != WallContact::None
+                && is_facing_wall
+                && wall_jump_timer.0 <= 0.0);
 
         let away_from_wall = match wall_contact {
             WallContact::Left => 1.0,
             WallContact::Right => -1.0,
             WallContact::None => 0.0,
         };
-        let is_lookback = is_holding_wall && move_input.x == away_from_wall && away_from_wall != 0.0;
+        let is_lookback =
+            is_holding_wall && move_input.x == away_from_wall && away_from_wall != 0.0;
 
         let is_moving = velocity.0.x.abs() > 5.0;
         let is_jumping_up = !grounded.0 && velocity.0.y > 0.0;
         let is_falling = !grounded.0 && velocity.0.y <= 0.0;
         let is_fall_fast = jump_state.fast_jump_active || -velocity.0.y >= FALL_FAST_ANIMATION_SPEED;
-        let next_state = if dash_state.is_dashing {
+        let next_state = if is_top_out {
+            AnimationState::Climb
+        } else if dash_state.is_dashing {
             AnimationState::Dash
         } else if is_lookback {
             AnimationState::ClimbLookback
@@ -86,7 +96,9 @@ pub fn animate_sprite(
         };
 
         sprite.flip_x = match next_state {
-            AnimationState::Climb | AnimationState::ClimbLookback => *wall_contact == WallContact::Left,
+            AnimationState::Climb | AnimationState::ClimbLookback => {
+                *wall_contact == WallContact::Left
+            }
             _ => facing.0 < 0.0,
         };
 

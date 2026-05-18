@@ -1,30 +1,32 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    ColliderSize, Crouching, DashSlideState, DashState, Facing, FreezeFrameState, Ground,
-    Grounded, JumpState, MovementInput, Player, PlayerActionInput, PlayerState,
+    ClimbTopOutState, ColliderSize, Crouching, DashSlideState, DashState, Facing, FreezeFrameState,
+    Ground, Grounded, JumpState, MovementInput, Player, PlayerActionInput, PlayerState,
     PlayerStateMachine, Velocity, WallContact, WallJumpTimer,
 };
 use crate::constants::{
-    AIR_ACCEL, AIR_FRICTION, AIR_TURN_FRICTION, APEX_HALF_GRAVITY_MULTIPLIER,
-    CROUCH_COLLIDER_SIZE, DASH_DURATION, DASH_END_MULTIPLIER, DASH_SLIDE_SPEED_MULTIPLIER,
-    DASH_SLIDE_WINDOW, DASH_SPEED, DASH_CORNER_CORRECTION, DASH_FREEZE_TIME, DEATH_THRESHOLD,
-    DUCK_SUPER_JUMP_X_MULTIPLIER, DUCK_SUPER_JUMP_Y_MULTIPLIER,
-    FALL_MULTIPLIER, GROUND_ACCEL, GROUND_FRICTION, GROUND_TURN_FRICTION, GRAVITY,
-    HALF_GRAVITY_THRESHOLD, JUMP_AWAY_FROM_WALL, JUMP_BUFFER_TIME, JUMP_GRACE_TIME,
-    JUMP_VELOCITY,
-    LOW_JUMP_MULTIPLIER, MAX_FALL_SPEED, MAX_RUN_SPEED, PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
-    SPAWN_POSITION,
-    SUPER_JUMP_APEX_GRAVITY_MULTIPLIER, SUPER_JUMP_APEX_THRESHOLD,
-    SUPER_JUMP_FALL_MULTIPLIER, SUPER_JUMP_GRAVITY_WINDOW, SUPER_JUMP_HORIZONTAL_SPEED,
-    SUPER_JUMP_TURN_FRICTION, SUPER_JUMP_VERTICAL_SPEED,
-    UPWARD_CORNER_CORRECTION,
-    WALL_CLIMB_JUMP_FORCE_Y, WALL_CLIMB_LOCK, WALL_CLIMB_SPEED, WALL_KICK_FORCE,
-    WALL_KICK_LOCK, WALL_NEUTRAL_FORCE, WALL_NEUTRAL_LOCK, WALL_SLIDE_SPEED,
+    AIR_ACCEL, AIR_FRICTION, AIR_TURN_FRICTION, APEX_HALF_GRAVITY_MULTIPLIER, CROUCH_COLLIDER_SIZE,
+    DASH_CORNER_CORRECTION, DASH_DURATION, DASH_END_MULTIPLIER, DASH_FREEZE_TIME,
+    DASH_SLIDE_SPEED_MULTIPLIER, DASH_SLIDE_WINDOW, DASH_SPEED, DEATH_THRESHOLD,
+    DUCK_SUPER_JUMP_X_MULTIPLIER, DUCK_SUPER_JUMP_Y_MULTIPLIER, FALL_MULTIPLIER, GRAVITY,
+    GROUND_ACCEL, GROUND_FRICTION, GROUND_TURN_FRICTION, HALF_GRAVITY_THRESHOLD,
+    JUMP_AWAY_FROM_WALL, JUMP_BUFFER_TIME, JUMP_GRACE_TIME, JUMP_VELOCITY, LOW_JUMP_MULTIPLIER,
+    MAX_FALL_SPEED, MAX_RUN_SPEED, PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
+    SUPER_JUMP_APEX_GRAVITY_MULTIPLIER, SUPER_JUMP_APEX_THRESHOLD, SUPER_JUMP_FALL_MULTIPLIER,
+    SUPER_JUMP_GRAVITY_WINDOW, SUPER_JUMP_HORIZONTAL_SPEED, SUPER_JUMP_TURN_FRICTION,
+    SUPER_JUMP_VERTICAL_SPEED, UPWARD_CORNER_CORRECTION, WALL_CLIMB_JUMP_FORCE_Y, WALL_CLIMB_LOCK,
+    WALL_CLIMB_SPEED, WALL_KICK_FORCE, WALL_KICK_LOCK, WALL_NEUTRAL_FORCE, WALL_NEUTRAL_LOCK,
+    WALL_SLIDE_SPEED,
 };
+use crate::level::ActiveRoom;
 use crate::utils::{can_use_collider, check_collision, move_towards};
 
-fn try_consume_ground_jump(jump_state: &mut JumpState, grounded: &Grounded, velocity: &mut Velocity) -> bool {
+fn try_consume_ground_jump(
+    jump_state: &mut JumpState,
+    grounded: &Grounded,
+    velocity: &mut Velocity,
+) -> bool {
     if jump_state.jump_buffer_timer > 0.0 && (grounded.0 || jump_state.jump_grace_timer > 0.0) {
         velocity.0.y = JUMP_VELOCITY;
         jump_state.jump_grace_timer = 0.0;
@@ -142,6 +144,49 @@ fn try_upward_corner_correction(
     false
 }
 
+fn find_climb_top_out_target(
+    translation: Vec3,
+    player_size: Vec2,
+    wall_contact: WallContact,
+    obstacles: &[(Vec3, Vec2)],
+) -> Option<Vec3> {
+    let player_half = player_size * 0.5;
+    let player_bottom = translation.y - player_half.y;
+    let player_left = translation.x - player_half.x;
+    let player_right = translation.x + player_half.x;
+    let wall_snap_tolerance = 1.5;
+
+    for (ground_pos, ground_size) in obstacles {
+        let ground_half = *ground_size * 0.5;
+        let wall_top = ground_pos.y + ground_half.y;
+        let wall_left = ground_pos.x - ground_half.x;
+        let wall_right = ground_pos.x + ground_half.x;
+
+        let is_adjacent = match wall_contact {
+            WallContact::Left => (player_left - wall_right).abs() <= wall_snap_tolerance,
+            WallContact::Right => (player_right - wall_left).abs() <= wall_snap_tolerance,
+            WallContact::None => false,
+        };
+
+        if !is_adjacent || player_bottom < wall_top {
+            continue;
+        }
+
+        let stand_x = match wall_contact {
+            WallContact::Left => wall_right,
+            WallContact::Right => wall_left,
+            WallContact::None => translation.x,
+        };
+        let candidate = Vec3::new(stand_x, wall_top + player_half.y, translation.z);
+
+        if can_use_collider(candidate, player_size, obstacles) {
+            return Some(candidate);
+        }
+    }
+
+    None
+}
+
 fn resolve_dash_direction(
     move_input: &MovementInput,
     grounded: &Grounded,
@@ -179,6 +224,49 @@ fn transition_player_state(state_machine: &mut PlayerStateMachine, next_state: P
     }
 }
 
+fn try_consume_climb_jump(
+    jump_state: &mut JumpState,
+    wall_contact: &WallContact,
+    move_input: &MovementInput,
+    actions: &PlayerActionInput,
+    facing: &Facing,
+    velocity: &mut Velocity,
+    wall_jump_timer: &mut WallJumpTimer,
+) -> bool {
+    if jump_state.jump_buffer_timer <= 0.0
+        || *wall_contact == WallContact::None
+        || !actions.grab_held
+    {
+        return false;
+    }
+
+    let wall_dir = match wall_contact {
+        WallContact::Left => -1.0,
+        WallContact::Right => 1.0,
+        WallContact::None => 0.0,
+    };
+
+    let jumping_away = move_input.x != 0.0 && move_input.x.signum() == -wall_dir;
+    let can_climb_jump = jumping_away || is_facing_wall(facing, wall_contact);
+
+    if !can_climb_jump {
+        return false;
+    }
+
+    if jumping_away {
+        velocity.0.x = -wall_dir * JUMP_AWAY_FROM_WALL;
+        velocity.0.y = WALL_CLIMB_JUMP_FORCE_Y;
+        wall_jump_timer.0 = WALL_KICK_LOCK;
+    } else {
+        velocity.0.y = WALL_CLIMB_JUMP_FORCE_Y;
+        velocity.0.x = 0.0;
+        wall_jump_timer.0 = WALL_CLIMB_LOCK;
+    }
+
+    jump_state.jump_buffer_timer = 0.0;
+    true
+}
+
 fn resolve_player_state(
     current_state: PlayerState,
     actions: &PlayerActionInput,
@@ -186,9 +274,12 @@ fn resolve_player_state(
     wall_contact: &WallContact,
     wall_jump_timer: &WallJumpTimer,
     dash_state: &DashState,
+    climb_top_out: &ClimbTopOutState,
 ) -> PlayerState {
     if dash_state.is_dashing {
         PlayerState::Dash
+    } else if climb_top_out.active {
+        PlayerState::TopOut
     } else if current_state == PlayerState::Climb {
         let can_keep_climbing = actions.grab_held
             && *wall_contact != WallContact::None
@@ -230,14 +321,13 @@ pub fn cache_player_input(
     mut query: Query<(&mut MovementInput, &mut PlayerActionInput, &mut Facing), With<Player>>,
 ) {
     if let Ok((mut move_input, mut actions, mut facing)) = query.get_single_mut() {
-        let left = keyboard_input.pressed(KeyCode::KeyA)
-            || keyboard_input.pressed(KeyCode::ArrowLeft);
-        let right = keyboard_input.pressed(KeyCode::KeyD)
-            || keyboard_input.pressed(KeyCode::ArrowRight);
-        let up = keyboard_input.pressed(KeyCode::KeyW)
-            || keyboard_input.pressed(KeyCode::ArrowUp);
-        let down = keyboard_input.pressed(KeyCode::KeyS)
-            || keyboard_input.pressed(KeyCode::ArrowDown);
+        let left =
+            keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft);
+        let right =
+            keyboard_input.pressed(KeyCode::KeyD) || keyboard_input.pressed(KeyCode::ArrowRight);
+        let up = keyboard_input.pressed(KeyCode::KeyW) || keyboard_input.pressed(KeyCode::ArrowUp);
+        let down =
+            keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown);
 
         move_input.x = if right && !left {
             1.0
@@ -256,12 +346,12 @@ pub fn cache_player_input(
 
         actions.jump_pressed = keyboard_input.just_pressed(KeyCode::Space)
             || keyboard_input.just_pressed(KeyCode::KeyZ);
-        actions.jump_held = keyboard_input.pressed(KeyCode::Space)
-            || keyboard_input.pressed(KeyCode::KeyZ);
+        actions.jump_held =
+            keyboard_input.pressed(KeyCode::Space) || keyboard_input.pressed(KeyCode::KeyZ);
         actions.dash_pressed = keyboard_input.just_pressed(KeyCode::KeyK)
             || keyboard_input.just_pressed(KeyCode::KeyC);
-        actions.grab_held = keyboard_input.pressed(KeyCode::KeyJ)
-            || keyboard_input.pressed(KeyCode::KeyX);
+        actions.grab_held =
+            keyboard_input.pressed(KeyCode::KeyJ) || keyboard_input.pressed(KeyCode::KeyX);
 
         if move_input.x != 0.0 {
             facing.0 = move_input.x;
@@ -270,15 +360,19 @@ pub fn cache_player_input(
 }
 
 pub fn update_player_state_machine(
-    mut query: Query<(
-        &mut Velocity,
-        &PlayerActionInput,
-        &Facing,
-        &WallContact,
-        &WallJumpTimer,
-        &DashState,
-        &mut PlayerStateMachine,
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &mut Velocity,
+            &PlayerActionInput,
+            &Facing,
+            &WallContact,
+            &WallJumpTimer,
+            &DashState,
+            &ClimbTopOutState,
+            &mut PlayerStateMachine,
+        ),
+        With<Player>,
+    >,
 ) {
     if let Ok((
         mut velocity,
@@ -287,9 +381,9 @@ pub fn update_player_state_machine(
         wall_contact,
         wall_jump_timer,
         dash_state,
+        climb_top_out,
         mut state_machine,
-    )) =
-        query.get_single_mut()
+    )) = query.get_single_mut()
     {
         let next_state = resolve_player_state(
             state_machine.current,
@@ -298,6 +392,7 @@ pub fn update_player_state_machine(
             wall_contact,
             wall_jump_timer,
             dash_state,
+            climb_top_out,
         );
 
         if state_machine.current != next_state {
@@ -357,21 +452,26 @@ pub fn tick_timers(
 }
 
 pub fn update_crouch_state(
-    mut query: Query<(
-        &mut Transform,
-        &Grounded,
-        &MovementInput,
-        &DashState,
-        &DashSlideState,
-        &PlayerStateMachine,
-        &mut Crouching,
-        &mut ColliderSize,
-    ), (With<Player>, Without<Ground>)>,
+    mut query: Query<
+        (
+            &mut Transform,
+            &Grounded,
+            &MovementInput,
+            &DashState,
+            &DashSlideState,
+            &PlayerStateMachine,
+            &mut Crouching,
+            &mut ColliderSize,
+        ),
+        (With<Player>, Without<Ground>),
+    >,
     obstacles_query: Query<(&Transform, &Sprite), (With<Ground>, Without<Player>)>,
 ) {
     let obstacles: Vec<(Vec3, Vec2)> = obstacles_query
         .iter()
-        .filter_map(|(transform, sprite)| sprite.custom_size.map(|size| (transform.translation, size)))
+        .filter_map(|(transform, sprite)| {
+            sprite.custom_size.map(|size| (transform.translation, size))
+        })
         .collect();
 
     if let Ok((
@@ -383,18 +483,21 @@ pub fn update_crouch_state(
         state_machine,
         mut crouching,
         mut collider_size,
-    )) =
-        query.get_single_mut()
+    )) = query.get_single_mut()
     {
         let height_delta = PLAYER_COLLIDER_SIZE.y - CROUCH_COLLIDER_SIZE.y;
 
-        if state_machine.current == PlayerState::Climb && crouching.0 {
+        if (state_machine.current == PlayerState::Climb
+            || state_machine.current == PlayerState::TopOut)
+            && crouching.0
+        {
             crouching.0 = false;
             collider_size.0 = PLAYER_COLLIDER_SIZE;
             transform.translation.y += height_delta * 0.5;
         }
 
         let wants_crouch = state_machine.current != PlayerState::Climb
+            && state_machine.current != PlayerState::TopOut
             && ((grounded.0 && move_input.y < 0.0 && !dash_state.is_dashing)
                 || dash_slide.timer > 0.0);
 
@@ -403,7 +506,8 @@ pub fn update_crouch_state(
             collider_size.0 = CROUCH_COLLIDER_SIZE;
             transform.translation.y -= height_delta * 0.5;
         } else if !wants_crouch && crouching.0 {
-            let expanded_translation = transform.translation + Vec3::new(0.0, height_delta * 0.5, 0.0);
+            let expanded_translation =
+                transform.translation + Vec3::new(0.0, height_delta * 0.5, 0.0);
             if can_use_collider(expanded_translation, PLAYER_COLLIDER_SIZE, &obstacles) {
                 crouching.0 = false;
                 collider_size.0 = PLAYER_COLLIDER_SIZE;
@@ -415,20 +519,24 @@ pub fn update_crouch_state(
 
 pub fn player_input(
     mut freeze_frames: ResMut<FreezeFrameState>,
-    mut query: Query<(
-        &mut Velocity,
-        &mut JumpState,
-        &Grounded,
-        &WallContact,
-        &mut WallJumpTimer,
-        &mut DashState,
-        &mut DashSlideState,
-        &MovementInput,
-        &mut PlayerActionInput,
-        &Facing,
-        &Crouching,
-        &mut PlayerStateMachine,
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &mut Velocity,
+            &mut JumpState,
+            &Grounded,
+            &WallContact,
+            &mut WallJumpTimer,
+            &mut DashState,
+            &mut DashSlideState,
+            &MovementInput,
+            &mut PlayerActionInput,
+            &Facing,
+            &Crouching,
+            &ClimbTopOutState,
+            &mut PlayerStateMachine,
+        ),
+        With<Player>,
+    >,
 ) {
     if let Ok((
         mut velocity,
@@ -442,9 +550,16 @@ pub fn player_input(
         mut actions,
         facing,
         crouching,
+        climb_top_out,
         mut state_machine,
     )) = query.get_single_mut()
     {
+        if climb_top_out.active || state_machine.current == PlayerState::TopOut {
+            actions.jump_pressed = false;
+            actions.dash_pressed = false;
+            return;
+        }
+
         if actions.jump_pressed {
             jump_state.jump_buffer_timer = JUMP_BUFFER_TIME;
             actions.jump_pressed = false;
@@ -489,35 +604,35 @@ pub fn player_input(
             return;
         }
 
-        if state_machine.current == PlayerState::Climb && jump_state.jump_buffer_timer > 0.0 {
-            if *wall_contact != WallContact::None {
-                let wall_dir = match wall_contact {
-                    WallContact::Left => -1.0,
-                    WallContact::Right => 1.0,
-                    WallContact::None => 0.0,
-                };
-
-                let jumping_away = move_input.x != 0.0 && move_input.x.signum() == -wall_dir;
-
-                if jumping_away {
-                    velocity.0.x = -wall_dir * JUMP_AWAY_FROM_WALL;
-                    velocity.0.y = WALL_CLIMB_JUMP_FORCE_Y;
-                    wall_jump_timer.0 = WALL_KICK_LOCK;
-                } else {
-                    velocity.0.y = WALL_CLIMB_JUMP_FORCE_Y;
-                    velocity.0.x = 0.0;
-                    wall_jump_timer.0 = WALL_CLIMB_LOCK;
-                }
-            }
-
-            jump_state.jump_buffer_timer = 0.0;
-            jump_state.super_jump_timer = 0.0;
-            jump_state.fast_jump_active = false;
+        if state_machine.current == PlayerState::Climb
+            && try_consume_climb_jump(
+                &mut jump_state,
+                wall_contact,
+                move_input,
+                &actions,
+                facing,
+                &mut velocity,
+                &mut wall_jump_timer,
+            )
+        {
             transition_player_state(&mut state_machine, PlayerState::Normal);
             return;
         }
 
         if try_consume_ground_jump(&mut jump_state, grounded, &mut velocity) {
+            return;
+        }
+
+        if try_consume_climb_jump(
+            &mut jump_state,
+            wall_contact,
+            move_input,
+            &actions,
+            facing,
+            &mut velocity,
+            &mut wall_jump_timer,
+        ) {
+            transition_player_state(&mut state_machine, PlayerState::Normal);
             return;
         }
 
@@ -546,28 +661,46 @@ pub fn player_input(
 }
 
 pub fn apply_physics(
-    mut query: Query<(
-        &mut Velocity,
-        &JumpState,
-        &PlayerStateMachine,
-        &WallContact,
-        &Grounded,
-        &WallJumpTimer,
-        &DashState,
-        &MovementInput,
-        &PlayerActionInput,
-        &Crouching,
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &mut Velocity,
+            &JumpState,
+            &PlayerStateMachine,
+            &WallContact,
+            &Grounded,
+            &WallJumpTimer,
+            &DashState,
+            &MovementInput,
+            &PlayerActionInput,
+            &Crouching,
+            &ClimbTopOutState,
+        ),
+        With<Player>,
+    >,
     time: Res<Time<Fixed>>,
 ) {
-    if let Ok((mut velocity, jump_state, state_machine, wall_contact, grounded, wall_jump_timer, dash_state, move_input, actions, crouching)) =
-        query.get_single_mut()
+    if let Ok((
+        mut velocity,
+        jump_state,
+        state_machine,
+        wall_contact,
+        grounded,
+        wall_jump_timer,
+        dash_state,
+        move_input,
+        actions,
+        crouching,
+        climb_top_out,
+    )) = query.get_single_mut()
     {
         let dt = time.delta_secs();
 
         match state_machine.current {
             PlayerState::Dash => {
                 velocity.0 = dash_state.direction * DASH_SPEED;
+            }
+            PlayerState::TopOut => {
+                velocity.0 = Vec2::ZERO;
             }
             PlayerState::Climb => {
                 velocity.0.x = 0.0;
@@ -598,7 +731,11 @@ pub fn apply_physics(
                             velocity.0.x = current_speed;
                         }
                     } else {
-                        let target_speed = if crouching.0 { 0.0 } else { move_input.x * MAX_RUN_SPEED };
+                        let target_speed = if crouching.0 {
+                            0.0
+                        } else {
+                            move_input.x * MAX_RUN_SPEED
+                        };
 
                         let (accel, friction, turn_friction) = if grounded.0 {
                             (GROUND_ACCEL, GROUND_FRICTION, GROUND_TURN_FRICTION)
@@ -607,7 +744,9 @@ pub fn apply_physics(
                         };
 
                         let final_accel = if move_input.x != 0.0 {
-                            if current_speed.signum() != move_input.x.signum() && current_speed != 0.0 {
+                            if current_speed.signum() != move_input.x.signum()
+                                && current_speed != 0.0
+                            {
                                 turn_friction
                             } else {
                                 accel
@@ -642,13 +781,12 @@ pub fn apply_physics(
                     FALL_MULTIPLIER
                 };
 
-                let gravity_multiplier = if actions.jump_held
-                    && velocity.0.y.abs() < HALF_GRAVITY_THRESHOLD
-                {
-                    gravity_multiplier * APEX_HALF_GRAVITY_MULTIPLIER
-                } else {
-                    gravity_multiplier
-                };
+                let gravity_multiplier =
+                    if actions.jump_held && velocity.0.y.abs() < HALF_GRAVITY_THRESHOLD {
+                        gravity_multiplier * APEX_HALF_GRAVITY_MULTIPLIER
+                    } else {
+                        gravity_multiplier
+                    };
 
                 velocity.0.y -= GRAVITY * gravity_multiplier * dt;
 
@@ -660,6 +798,7 @@ pub fn apply_physics(
                     && velocity.0.y < 0.0
                     && !grounded.0
                     && wall_jump_timer.0 <= 0.0
+                    && !climb_top_out.active
                     && velocity.0.y < -WALL_SLIDE_SPEED
                 {
                     velocity.0.y = -WALL_SLIDE_SPEED;
@@ -671,26 +810,34 @@ pub fn apply_physics(
 
 pub fn player_movement(
     mut param_set: ParamSet<(
-        Query<(
-            &mut Transform,
-            &mut Velocity,
-            &mut JumpState,
-            &mut Grounded,
-            &mut WallContact,
-            &mut ColliderSize,
-            &mut Crouching,
-            &mut DashState,
-            &mut DashSlideState,
-            &mut PlayerStateMachine,
-        ), With<Player>>,
+        Query<
+            (
+                &mut Transform,
+                &mut Velocity,
+                &mut JumpState,
+                &mut Grounded,
+                &mut WallContact,
+                &mut ColliderSize,
+                &mut Crouching,
+                &mut DashState,
+                &mut DashSlideState,
+                &mut ClimbTopOutState,
+                &mut PlayerStateMachine,
+                &MovementInput,
+            ),
+            With<Player>,
+        >,
         Query<(&Transform, &Sprite), With<Ground>>,
     )>,
     time: Res<Time<Fixed>>,
+    active_room: Res<ActiveRoom>,
 ) {
     let obstacles: Vec<(Vec3, Vec2)> = param_set
         .p1()
         .iter()
-        .filter_map(|(transform, sprite)| sprite.custom_size.map(|size| (transform.translation, size)))
+        .filter_map(|(transform, sprite)| {
+            sprite.custom_size.map(|size| (transform.translation, size))
+        })
         .collect();
 
     if let Ok((
@@ -703,18 +850,51 @@ pub fn player_movement(
         mut crouching,
         mut dash_state,
         mut dash_slide,
+        mut climb_top_out,
         mut state_machine,
+        move_input,
     )) = param_set.p0().get_single_mut()
     {
         let player_size = collider_size.0;
         let delta_seconds = time.delta_secs();
         let was_grounded = grounded.0;
 
+        if climb_top_out.active {
+            climb_top_out.timer = (climb_top_out.timer - delta_seconds).max(0.0);
+            let progress = if climb_top_out.duration <= 0.0 {
+                1.0
+            } else {
+                1.0 - climb_top_out.timer / climb_top_out.duration
+            };
+            player_transform.translation = climb_top_out
+                .start
+                .lerp(climb_top_out.target, progress.clamp(0.0, 1.0));
+            velocity.0 = Vec2::ZERO;
+            grounded.0 = false;
+
+            if climb_top_out.timer <= 0.0 {
+                player_transform.translation = climb_top_out.target;
+                climb_top_out.active = false;
+                grounded.0 = true;
+                *wall_contact = WallContact::None;
+                transition_player_state(&mut state_machine, PlayerState::Normal);
+            } else {
+                *wall_contact = WallContact::None;
+                transition_player_state(&mut state_machine, PlayerState::TopOut);
+            }
+            return;
+        }
+
         grounded.0 = false;
 
         player_transform.translation.x += velocity.0.x * delta_seconds;
         for (ground_pos, ground_size) in &obstacles {
-            if check_collision(player_transform.translation, player_size, *ground_pos, *ground_size) {
+            if check_collision(
+                player_transform.translation,
+                player_size,
+                *ground_pos,
+                *ground_size,
+            ) {
                 if !try_dash_corner_correction(
                     &mut player_transform.translation,
                     player_size,
@@ -748,7 +928,12 @@ pub fn player_movement(
 
         player_transform.translation.y += velocity.0.y * delta_seconds;
         for (ground_pos, ground_size) in &obstacles {
-            if check_collision(player_transform.translation, player_size, *ground_pos, *ground_size) {
+            if check_collision(
+                player_transform.translation,
+                player_size,
+                *ground_pos,
+                *ground_size,
+            ) {
                 if velocity.0.y > 0.0 {
                     if !try_upward_corner_correction(
                         &mut player_transform.translation,
@@ -772,12 +957,33 @@ pub fn player_movement(
             }
         }
 
+        if state_machine.current == PlayerState::Climb && move_input.y > 0.0 {
+            if let Some(target) = find_climb_top_out_target(
+                player_transform.translation,
+                player_size,
+                *wall_contact,
+                &obstacles,
+            ) {
+                climb_top_out.active = true;
+                climb_top_out.duration = 0.12;
+                climb_top_out.timer = climb_top_out.duration;
+                climb_top_out.start = player_transform.translation;
+                climb_top_out.target = target;
+                velocity.0 = Vec2::ZERO;
+                grounded.0 = false;
+                *wall_contact = WallContact::None;
+                transition_player_state(&mut state_machine, PlayerState::TopOut);
+                return;
+            }
+        }
+
         if grounded.0
             && !was_grounded
             && dash_state.is_dashing
             && dash_state.direction.x != 0.0
             && dash_state.direction.y < 0.0
         {
+            velocity.0 = Vec2::ZERO;
             dash_state.is_dashing = false;
             dash_state.timer = 0.0;
             dash_slide.timer = DASH_SLIDE_WINDOW;
@@ -789,7 +995,11 @@ pub fn player_movement(
         }
 
         if player_transform.translation.y < DEATH_THRESHOLD {
-            player_transform.translation = Vec3::new(SPAWN_POSITION.x, SPAWN_POSITION.y, PLAYER_RENDER_Z);
+            player_transform.translation = Vec3::new(
+                active_room.respawn_point.x,
+                active_room.respawn_point.y,
+                PLAYER_RENDER_Z,
+            );
             velocity.0 = Vec2::ZERO;
             jump_state.jump_grace_timer = 0.0;
             jump_state.jump_buffer_timer = 0.0;
@@ -802,6 +1012,11 @@ pub fn player_movement(
             dash_state.timer = 0.0;
             dash_slide.timer = 0.0;
             dash_slide.direction = 0.0;
+            climb_top_out.active = false;
+            climb_top_out.timer = 0.0;
+            climb_top_out.duration = 0.0;
+            climb_top_out.start = player_transform.translation;
+            climb_top_out.target = player_transform.translation;
             collider_size.0 = PLAYER_COLLIDER_SIZE;
             state_machine.current = PlayerState::Normal;
             state_machine.previous = PlayerState::Normal;

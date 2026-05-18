@@ -1,5 +1,6 @@
 mod components;
 mod constants;
+mod level;
 mod scene;
 mod systems;
 mod utils;

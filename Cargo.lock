@@ -4143,6 +4143,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_framepace",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
