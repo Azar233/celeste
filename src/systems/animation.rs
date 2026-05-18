@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, MovementInput,
-    PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity, WallContact,
-    WallJumpTimer,
+    AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, JumpState,
+    MovementInput, PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity,
+    WallContact, WallJumpTimer,
 };
+use crate::constants::FALL_FAST_ANIMATION_SPEED;
 
 pub fn animate_sprite(
     time: Res<Time>,
@@ -18,6 +19,7 @@ pub fn animate_sprite(
         &Facing,
         &Grounded,
         &Crouching,
+        &JumpState,
         &MovementInput,
         &WallContact,
         &WallJumpTimer,
@@ -35,6 +37,7 @@ pub fn animate_sprite(
         facing,
         grounded,
         crouching,
+        jump_state,
         move_input,
         wall_contact,
         wall_jump_timer,
@@ -65,14 +68,27 @@ pub fn animate_sprite(
             is_holding_wall && move_input.x == away_from_wall && away_from_wall != 0.0;
 
         let is_moving = velocity.0.x.abs() > 5.0;
+        let is_jumping_up = !grounded.0 && velocity.0.y > 0.0;
+        let is_falling = !grounded.0 && velocity.0.y <= 0.0;
+        let is_fall_fast = jump_state.fast_jump_active || -velocity.0.y >= FALL_FAST_ANIMATION_SPEED;
         let next_state = if is_top_out {
             AnimationState::Climb
+        } else if dash_state.is_dashing {
+            AnimationState::Dash
         } else if is_lookback {
             AnimationState::ClimbLookback
         } else if is_holding_wall {
             AnimationState::Climb
         } else if crouching.0 {
             AnimationState::Duck
+        } else if is_jumping_up && jump_state.super_jump_timer > 0.0 {
+            AnimationState::JumpFast
+        } else if is_jumping_up {
+            AnimationState::JumpSlow
+        } else if is_falling && is_fall_fast {
+            AnimationState::FallFast
+        } else if is_falling {
+            AnimationState::FallSlow
         } else if grounded.0 && is_moving {
             AnimationState::Run
         } else {
@@ -107,6 +123,41 @@ pub fn animate_sprite(
                     sprite.image = animations.duck_texture.clone();
                     sprite.texture_atlas = None;
                 }
+                AnimationState::Dash => {
+                    sprite.image = animations.dash_texture.clone();
+                    sprite.texture_atlas = Some(TextureAtlas {
+                        layout: animations.dash_layout.clone(),
+                        index: 0,
+                    });
+                }
+                AnimationState::JumpSlow => {
+                    sprite.image = animations.jump_slow_texture.clone();
+                    sprite.texture_atlas = Some(TextureAtlas {
+                        layout: animations.jump_slow_layout.clone(),
+                        index: 0,
+                    });
+                }
+                AnimationState::JumpFast => {
+                    sprite.image = animations.jump_fast_texture.clone();
+                    sprite.texture_atlas = Some(TextureAtlas {
+                        layout: animations.jump_fast_layout.clone(),
+                        index: 0,
+                    });
+                }
+                AnimationState::FallSlow => {
+                    sprite.image = animations.fall_slow_texture.clone();
+                    sprite.texture_atlas = Some(TextureAtlas {
+                        layout: animations.fall_slow_layout.clone(),
+                        index: 0,
+                    });
+                }
+                AnimationState::FallFast => {
+                    sprite.image = animations.fall_fast_texture.clone();
+                    sprite.texture_atlas = Some(TextureAtlas {
+                        layout: animations.fall_fast_layout.clone(),
+                        index: 0,
+                    });
+                }
                 AnimationState::Climb => {
                     sprite.image = animations.climb_texture.clone();
                     sprite.texture_atlas = Some(TextureAtlas {
@@ -135,6 +186,11 @@ pub fn animate_sprite(
                     AnimationState::Idle => 9,
                     AnimationState::Run => 12,
                     AnimationState::Duck => 1,
+                    AnimationState::Dash => 4,
+                    AnimationState::JumpSlow => 2,
+                    AnimationState::JumpFast => 2,
+                    AnimationState::FallSlow => 2,
+                    AnimationState::FallFast => 2,
                     AnimationState::Climb => 6,
                     AnimationState::ClimbLookback => 3,
                 };

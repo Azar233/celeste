@@ -31,6 +31,8 @@ fn try_consume_ground_jump(
         velocity.0.y = JUMP_VELOCITY;
         jump_state.jump_grace_timer = 0.0;
         jump_state.jump_buffer_timer = 0.0;
+        jump_state.super_jump_timer = 0.0;
+        jump_state.fast_jump_active = false;
         return true;
     }
 
@@ -68,6 +70,7 @@ fn perform_super_jump(
     jump_state.jump_grace_timer = 0.0;
     jump_state.jump_buffer_timer = 0.0;
     jump_state.super_jump_timer = SUPER_JUMP_GRAVITY_WINDOW;
+    jump_state.fast_jump_active = true;
 }
 
 fn try_consume_grounded_super_jump(
@@ -278,7 +281,12 @@ fn resolve_player_state(
     } else if climb_top_out.active {
         PlayerState::TopOut
     } else if current_state == PlayerState::Climb {
-        if !actions.grab_held || *wall_contact == WallContact::None {
+        let can_keep_climbing = actions.grab_held
+            && *wall_contact != WallContact::None
+            && is_facing_wall(facing, wall_contact)
+            && wall_jump_timer.0 <= 0.0;
+
+        if !can_keep_climbing {
             PlayerState::Normal
         } else {
             PlayerState::Climb
@@ -407,6 +415,7 @@ pub fn tick_timers(
         if grounded.0 {
             jump_state.jump_grace_timer = JUMP_GRACE_TIME;
             jump_state.super_jump_timer = 0.0;
+            jump_state.fast_jump_active = false;
         } else if jump_state.jump_grace_timer > 0.0 {
             jump_state.jump_grace_timer = (jump_state.jump_grace_timer - dt).max(0.0);
         }
@@ -645,6 +654,8 @@ pub fn player_input(
             }
 
             jump_state.jump_buffer_timer = 0.0;
+            jump_state.super_jump_timer = 0.0;
+            jump_state.fast_jump_active = false;
         }
     }
 }
@@ -993,6 +1004,7 @@ pub fn player_movement(
             jump_state.jump_grace_timer = 0.0;
             jump_state.jump_buffer_timer = 0.0;
             jump_state.super_jump_timer = 0.0;
+            jump_state.fast_jump_active = false;
             *wall_contact = WallContact::None;
             grounded.0 = false;
             crouching.0 = false;
