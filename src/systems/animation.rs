@@ -46,17 +46,10 @@ pub fn animate_sprite(
     ) in &mut query
     {
         let is_top_out = state_machine.current == PlayerState::TopOut;
-        let is_facing_wall = match wall_contact {
-            WallContact::Left => facing.0 < 0.0,
-            WallContact::Right => facing.0 > 0.0,
-            WallContact::None => false,
-        };
-
         let is_holding_wall = is_top_out
             || (actions.grab_held
                 && !dash_state.is_dashing
                 && *wall_contact != WallContact::None
-                && is_facing_wall
                 && wall_jump_timer.0 <= 0.0);
 
         let away_from_wall = match wall_contact {
