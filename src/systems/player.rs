@@ -226,10 +226,11 @@ fn transition_player_state(state_machine: &mut PlayerStateMachine, next_state: P
 
 fn try_consume_climb_jump(
     jump_state: &mut JumpState,
+    in_climb_state: bool,
     wall_contact: &WallContact,
     move_input: &MovementInput,
     actions: &PlayerActionInput,
-    facing: &Facing,
+    facing: &mut Facing,
     velocity: &mut Velocity,
     wall_jump_timer: &mut WallJumpTimer,
 ) -> bool {
@@ -247,7 +248,7 @@ fn try_consume_climb_jump(
     };
 
     let jumping_away = move_input.x != 0.0 && move_input.x.signum() == -wall_dir;
-    let can_climb_jump = jumping_away || is_facing_wall(facing, wall_contact);
+    let can_climb_jump = jumping_away || in_climb_state || is_facing_wall(facing, wall_contact);
 
     if !can_climb_jump {
         return false;
@@ -257,10 +258,12 @@ fn try_consume_climb_jump(
         velocity.0.x = -wall_dir * JUMP_AWAY_FROM_WALL;
         velocity.0.y = WALL_CLIMB_JUMP_FORCE_Y;
         wall_jump_timer.0 = WALL_KICK_LOCK;
+        facing.0 = -wall_dir;
     } else {
         velocity.0.y = WALL_CLIMB_JUMP_FORCE_Y;
         velocity.0.x = 0.0;
         wall_jump_timer.0 = WALL_CLIMB_LOCK;
+        facing.0 = wall_dir;
     }
 
     jump_state.jump_buffer_timer = 0.0;
@@ -283,7 +286,6 @@ fn resolve_player_state(
     } else if current_state == PlayerState::Climb {
         let can_keep_climbing = actions.grab_held
             && *wall_contact != WallContact::None
-            && is_facing_wall(facing, wall_contact)
             && wall_jump_timer.0 <= 0.0;
 
         if !can_keep_climbing {
@@ -530,7 +532,7 @@ pub fn player_input(
             &mut DashSlideState,
             &MovementInput,
             &mut PlayerActionInput,
-            &Facing,
+            &mut Facing,
             &Crouching,
             &ClimbTopOutState,
             &mut PlayerStateMachine,
@@ -548,7 +550,7 @@ pub fn player_input(
         mut dash_slide,
         move_input,
         mut actions,
-        facing,
+        mut facing,
         crouching,
         climb_top_out,
         mut state_machine,
@@ -579,7 +581,7 @@ pub fn player_input(
                 freeze_frames.timer = DASH_FREEZE_TIME;
             }
 
-            dash_state.direction = resolve_dash_direction(move_input, grounded, crouching, facing);
+            dash_state.direction = resolve_dash_direction(move_input, grounded, crouching, &facing);
             velocity.0 = dash_state.direction * DASH_SPEED;
             transition_player_state(&mut state_machine, PlayerState::Dash);
         }
@@ -607,10 +609,11 @@ pub fn player_input(
         if state_machine.current == PlayerState::Climb
             && try_consume_climb_jump(
                 &mut jump_state,
+                true,
                 wall_contact,
                 move_input,
                 &actions,
-                facing,
+                &mut facing,
                 &mut velocity,
                 &mut wall_jump_timer,
             )
@@ -625,10 +628,11 @@ pub fn player_input(
 
         if try_consume_climb_jump(
             &mut jump_state,
+            false,
             wall_contact,
             move_input,
             &actions,
-            facing,
+            &mut facing,
             &mut velocity,
             &mut wall_jump_timer,
         ) {

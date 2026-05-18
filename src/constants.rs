@@ -28,7 +28,7 @@ pub const WALL_NEUTRAL_FORCE: Vec2 = Vec2::new(80.0, 300.0);
 pub const WALL_NEUTRAL_LOCK: f32 = 0.0;
 pub const WALL_CLIMB_JUMP_FORCE_Y: f32 = 280.0;
 pub const JUMP_AWAY_FROM_WALL: f32 = 140.0;
-pub const WALL_CLIMB_LOCK: f32 = 0.1;
+pub const WALL_CLIMB_LOCK: f32 = 0.12;
 pub const UPWARD_CORNER_CORRECTION: i32 = 4;
 pub const DASH_CORNER_CORRECTION: i32 = 4;
 
