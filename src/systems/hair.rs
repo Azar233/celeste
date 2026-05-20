@@ -72,14 +72,18 @@ pub fn update_hair(
         };
 
         let bangs_anim_offset = match anim_state {
-            AnimationState::Idle => hair_anim_offset,
+            AnimationState::Idle => match frame_index {
+                0..=3 => Vec2::new(0.0, 1.0),
+                4..=8 => Vec2::new(0.0, 0.0),
+                _ => Vec2::ZERO,
+            },
             AnimationState::Run => Vec2::ZERO,
             AnimationState::Duck => Vec2::new(0.0, -1.0),
             AnimationState::Dash => Vec2::new(0.0, -2.0),
             AnimationState::JumpSlow
-            | AnimationState::JumpFast
+            | AnimationState::JumpFast => Vec2::new(0.0, 2.0),
             | AnimationState::FallSlow
-            | AnimationState::FallFast => Vec2::new(0.0, -2.0),
+            | AnimationState::FallFast => Vec2::new(0.0, 0.0),
             AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
         };
 

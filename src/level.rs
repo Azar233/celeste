@@ -95,7 +95,7 @@ pub struct RoomExitData {
     pub preserve_momentum: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExitSide {
     Left,

@@ -14,12 +14,10 @@
         { "kind": "solid_ground", "x": -110.0, "y": -78.0, "w": 132.0, "h": 24.0, "art_tag": "stone_floor_a" },
         { "kind": "solid_ground", "x": 42.0, "y": -78.0, "w": 140.0, "h": 24.0, "art_tag": "stone_floor_a" },
         { "kind": "wall_surface", "x": -28.0, "y": -34.0, "w": 16.0, "h": 112.0, "art_tag": "stone_wall_a" },
-        { "kind": "wall_surface", "x": 112.0, "y": -8.0, "w": 16.0, "h": 164.0, "art_tag": "stone_wall_a" },
+        { "kind": "wall_surface", "x": 112.0, "y": -8.0, "w": 16.0, "h": 124.0, "art_tag": "stone_wall_a" },
         { "kind": "camera_zone", "x": 0.0, "y": 0.0, "w": 320.0, "h": 180.0 }
       ],
-      "hazards": [
-        { "x": -48.0, "y": -90.0, "w": 28.0, "h": 8.0 }
-      ],
+      "hazards": [],
       "checkpoints": [
         { "id": "room_00_cp", "x": 84.0, "y": -56.0 }
       ],
@@ -48,7 +46,7 @@
       "collision": [
         { "kind": "solid_ground", "x": 214.0, "y": -78.0, "w": 92.0, "h": 24.0, "art_tag": "stone_floor_b" },
         { "kind": "solid_ground", "x": 344.0, "y": -32.0, "w": 88.0, "h": 16.0, "art_tag": "stone_floor_b" },
-        { "kind": "wall_surface", "x": 274.0, "y": 2.0, "w": 16.0, "h": 164.0, "art_tag": "stone_wall_b" },
+        { "kind": "wall_surface", "x": 274.0, "y": 2.0, "w": 16.0, "h": 124.0, "art_tag": "stone_wall_b" },
         { "kind": "wall_surface", "x": 398.0, "y": 28.0, "w": 16.0, "h": 120.0, "art_tag": "stone_wall_b" },
         { "kind": "camera_zone", "x": 320.0, "y": 0.0, "w": 320.0, "h": 180.0 }
       ],

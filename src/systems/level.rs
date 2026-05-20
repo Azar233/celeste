@@ -277,3 +277,63 @@ pub fn handle_room_transitions(
         overlay_transform.translation.y = target_room.bounds.center().y;
     }
 }
+
+pub fn camera_follow(
+    player_query: Query<&Transform, With<Player>>,
+    active_room: Res<ActiveRoom>,
+    loaded_map: Res<LoadedMap>,
+    window_query: Query<&Window>,
+    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
+    mut weather_query: Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
+    time: Res<Time>,
+) {
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+    let Ok(window) = window_query.get_single() else {
+        return;
+    };
+    let Some(room) = loaded_map.data.room(&active_room.room_id) else {
+        return;
+    };
+
+    // Viewport: height fixed at 180px, width derived from window aspect
+    let viewport_height = 180.0;
+    let aspect = window.width() / window.height();
+    let viewport_width = viewport_height * aspect;
+    let half_w = viewport_width * 0.5;
+    let half_h = viewport_height * 0.5;
+
+    // Room bounds edges (room.bounds.x/y is the center)
+    let room_left = room.bounds.x - room.bounds.w * 0.5;
+    let room_right = room.bounds.x + room.bounds.w * 0.5;
+    let room_bottom = room.bounds.y - room.bounds.h * 0.5;
+    let room_top = room.bounds.y + room.bounds.h * 0.5;
+
+    // Target follows player, clamped so camera never shows outside the room
+    let target_x = if room.bounds.w >= viewport_width {
+        player_transform.translation.x.clamp(room_left + half_w, room_right - half_w)
+    } else {
+        room.bounds.x
+    };
+    let target_y = if room.bounds.h >= viewport_height {
+        player_transform.translation.y.clamp(room_bottom + half_h, room_top - half_h)
+    } else {
+        room.bounds.y
+    };
+
+    // Smooth follow (exponential ease)
+    let follow_speed = 8.0;
+    let t = 1.0 - (-follow_speed * time.delta_secs()).exp();
+
+    if let Ok(mut cam) = camera_query.get_single_mut() {
+        cam.translation.x += (target_x - cam.translation.x) * t;
+        cam.translation.y += (target_y - cam.translation.y) * t;
+
+        // Keep weather overlay at camera position
+        for mut overlay in &mut weather_query {
+            overlay.translation.x = cam.translation.x;
+            overlay.translation.y = cam.translation.y;
+        }
+    }
+}

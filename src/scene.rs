@@ -427,6 +427,55 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
         },
         Transform::from_xyz(room.bounds.x, room.bounds.y, -1.0),
     ));
+
+    spawn_boundary_walls(commands, room);
+}
+
+fn spawn_boundary_walls(commands: &mut Commands, room: &RoomData) {
+    let bounds = &room.bounds;
+    let thickness = TILE_SIZE;
+    let half_w = bounds.w * 0.5;
+    let half_h = bounds.h * 0.5;
+
+    let has_left_exit = room.exits.iter().any(|e| e.side == ExitSide::Left);
+    let has_right_exit = room.exits.iter().any(|e| e.side == ExitSide::Right);
+    let has_top_exit = room.exits.iter().any(|e| e.side == ExitSide::Top);
+    if !has_left_exit {
+        commands.spawn((
+            Ground,
+            LevelEntity,
+            Sprite {
+                color: Color::NONE,
+                custom_size: Some(Vec2::new(thickness, bounds.h)),
+                ..default()
+            },
+            Transform::from_xyz(bounds.x - half_w, bounds.y, 0.0),
+        ));
+    }
+    if !has_right_exit {
+        commands.spawn((
+            Ground,
+            LevelEntity,
+            Sprite {
+                color: Color::NONE,
+                custom_size: Some(Vec2::new(thickness, bounds.h)),
+                ..default()
+            },
+            Transform::from_xyz(bounds.x + half_w, bounds.y, 0.0),
+        ));
+    }
+    if !has_top_exit {
+        commands.spawn((
+            Ground,
+            LevelEntity,
+            Sprite {
+                color: Color::NONE,
+                custom_size: Some(Vec2::new(bounds.w, thickness)),
+                ..default()
+            },
+            Transform::from_xyz(bounds.x, bounds.y + half_h, 0.0),
+        ));
+    }
 }
 
 fn collect_solid_cells(room: &RoomData) -> HashSet<(i32, i32)> {

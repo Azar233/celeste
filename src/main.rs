@@ -1,6 +1,7 @@
 mod components;
 mod constants;
 mod level;
+mod menu;
 mod scene;
 mod systems;
 mod utils;
@@ -11,6 +12,7 @@ use bevy::window::{PresentMode, WindowPlugin};
 use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 
 use components::{HairMaterial, WeatherMaterial};
+use menu::MenuPlugin;
 use scene::ScenePlugin;
 use systems::GameplayPlugin;
 
@@ -36,6 +38,6 @@ fn main() {
             Material2dPlugin::<HairMaterial>::default(),
             Material2dPlugin::<WeatherMaterial>::default(),
         ))
-        .add_plugins((ScenePlugin, GameplayPlugin))
+        .add_plugins((ScenePlugin, GameplayPlugin, MenuPlugin))
         .run();
 }
