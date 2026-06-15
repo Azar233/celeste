@@ -8,12 +8,16 @@ pub mod weather;
 use bevy::prelude::*;
 
 use crate::components::FreezeFrameState;
+use crate::editor::editor_inactive;
 use crate::menu::MenuOpen;
 
 pub use animation::animate_sprite;
 pub use effects::{emit_dash_trail, update_dash_trail};
 pub use hair::update_hair;
-pub use level::{camera_follow, handle_hazard_respawn, handle_room_transitions, update_checkpoint_respawn};
+pub use level::{
+    camera_follow, handle_hazard_respawn, handle_room_transitions, update_checkpoint_respawn,
+    update_dash_crystals,
+};
 pub use player::{
     apply_physics, cache_player_input, player_input, player_movement, tick_timers,
     update_crouch_state, update_player_state_machine,
@@ -22,6 +26,14 @@ pub use weather::update_weather_material;
 
 fn gameplay_active(freeze_frames: Res<FreezeFrameState>, menu_state: Res<MenuOpen>) -> bool {
     freeze_frames.timer <= 0.0 && !menu_state.0
+}
+
+fn gameplay_active_outside_editor(
+    freeze_frames: Res<FreezeFrameState>,
+    menu_state: Res<MenuOpen>,
+    editor: Option<Res<crate::editor::EditorState>>,
+) -> bool {
+    gameplay_active(freeze_frames, menu_state) && editor_inactive(editor)
 }
 
 fn tick_freeze_frames(time: Res<Time<Real>>, mut freeze_frames: ResMut<FreezeFrameState>) {
@@ -36,7 +48,7 @@ impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(FreezeFrameState::default())
             .add_systems(Update, tick_freeze_frames)
-            .add_systems(Update, cache_player_input.run_if(gameplay_active))
+            .add_systems(Update, cache_player_input.run_if(gameplay_active_outside_editor))
             .add_systems(
                 FixedUpdate,
                 (
@@ -46,12 +58,13 @@ impl Plugin for GameplayPlugin {
                     update_crouch_state,
                     apply_physics,
                     player_movement,
+                    update_dash_crystals,
                     handle_room_transitions,
                     handle_hazard_respawn,
                     update_checkpoint_respawn,
                 )
                     .chain()
-                    .run_if(gameplay_active),
+                    .run_if(gameplay_active_outside_editor),
             )
             .add_systems(
             Update,

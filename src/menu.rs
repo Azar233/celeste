@@ -48,6 +48,7 @@ struct MapItem(pub String);
 
 // Action tags
 const ACT_CONTINUE: &str = "continue";
+const ACT_RELOAD_CURRENT: &str = "reload_current";
 const ACT_SWITCH_MAP: &str = "switch_map";
 const ACT_EXIT: &str = "exit";
 
@@ -136,6 +137,7 @@ fn spawn_menu_root(commands: &mut Commands) {
             ));
 
             spawn_button(parent, "Continue", ACT_CONTINUE);
+            spawn_button(parent, "Reload Current Room", ACT_RELOAD_CURRENT);
             spawn_button(parent, "Switch Map", ACT_SWITCH_MAP);
             spawn_button(parent, "Exit Game", ACT_EXIT);
         });
@@ -216,6 +218,7 @@ fn handle_button_interaction(
     menu_buttons: Query<(Entity, &Interaction, Option<&MenuAction>, Option<&MapItem>), (Changed<Interaction>, With<Button>)>,
     mut bg_query: Query<&mut BackgroundColor>,
     level_art: Res<LevelArt>,
+    loaded_map: Res<LoadedMap>,
     mut active_room: ResMut<ActiveRoom>,
     level_entities: Query<Entity, With<LevelEntity>>,
     mut player_query: Query<
@@ -270,6 +273,19 @@ fn handle_button_interaction(
                 if let Some(action) = action {
                     match action.0 {
                         ACT_CONTINUE => {
+                            close_menu(&mut commands, &menu_root, &mut menu_open);
+                        }
+                        ACT_RELOAD_CURRENT => {
+                            reload_current_room(
+                                &mut commands,
+                                &loaded_map,
+                                &level_art,
+                                &mut active_room,
+                                &level_entities,
+                                &mut player_query,
+                                &mut camera_query,
+                                &mut weather_query,
+                            );
                             close_menu(&mut commands, &menu_root, &mut menu_open);
                         }
                         ACT_EXIT => {
@@ -358,6 +374,7 @@ fn reload_menu_with_map_list(
             ));
 
             spawn_button(parent, "Continue", ACT_CONTINUE);
+            spawn_button(parent, "Reload Current Room", ACT_RELOAD_CURRENT);
             spawn_button(parent, "Switch Map", ACT_SWITCH_MAP);
 
             if maps.is_empty() {
@@ -375,6 +392,119 @@ fn reload_menu_with_map_list(
 
             spawn_button(parent, "Exit Game", ACT_EXIT);
         });
+}
+
+fn reload_current_room(
+    commands: &mut Commands,
+    loaded_map: &Res<LoadedMap>,
+    level_art: &Res<LevelArt>,
+    active_room: &mut ResMut<ActiveRoom>,
+    level_entities: &Query<Entity, With<LevelEntity>>,
+    player_query: &mut Query<
+        (
+            &mut Transform,
+            &mut Velocity,
+            &mut Grounded,
+            &mut WallContact,
+            &mut ColliderSize,
+            &mut Crouching,
+            &mut DashState,
+            &mut DashSlideState,
+            &mut PlayerStateMachine,
+            &mut ClimbTopOutState,
+            &mut Hair,
+            &Facing,
+        ),
+        (With<Player>, Without<Camera2d>, Without<WeatherOverlay>),
+    >,
+    camera_query: &mut Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
+    weather_query: &mut Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
+) {
+    let path = loaded_map.path.clone();
+    let new_map = match load_map_from_path(&path) {
+        Ok(map) => map,
+        Err(e) => {
+            error!("Failed to reload current map '{}': {e}", path.display());
+            return;
+        }
+    };
+
+    let current_room_id = active_room.room_id.clone();
+    let preserved_respawn = active_room.respawn_point;
+    let Some(room) = new_map.room(&current_room_id) else {
+        error!(
+            "Reloaded map '{}' no longer contains current room '{}'",
+            path.display(),
+            current_room_id
+        );
+        return;
+    };
+
+    let spawn_point = preserved_respawn;
+    let new_map_id = new_map.id.clone();
+
+    for entity in level_entities {
+        commands.entity(entity).despawn();
+    }
+
+    spawn_room_geometry(commands, room, level_art);
+
+    let Ok((
+        mut player_transform,
+        mut velocity,
+        mut grounded,
+        mut wall_contact,
+        mut collider_size,
+        mut crouching,
+        mut dash_state,
+        mut dash_slide,
+        mut state_machine,
+        mut climb_top_out,
+        mut hair,
+        facing,
+    )) = player_query.get_single_mut()
+    else {
+        error!("Player entity not found during current room reload");
+        return;
+    };
+
+    player_transform.translation = Vec3::new(spawn_point.x, spawn_point.y, PLAYER_RENDER_Z);
+    velocity.0 = Vec2::ZERO;
+    grounded.0 = false;
+    *wall_contact = WallContact::None;
+    crouching.0 = false;
+    dash_state.is_dashing = false;
+    dash_state.timer = 0.0;
+    dash_slide.timer = 0.0;
+    dash_slide.direction = 0.0;
+    climb_top_out.active = false;
+    climb_top_out.timer = 0.0;
+    climb_top_out.duration = 0.0;
+    climb_top_out.start = player_transform.translation;
+    climb_top_out.target = player_transform.translation;
+    collider_size.0 = PLAYER_COLLIDER_SIZE;
+    state_machine.current = PlayerState::Normal;
+    state_machine.previous = PlayerState::Normal;
+    hair.sim_positions = initial_hair_positions(spawn_point, facing.0);
+
+    **active_room = ActiveRoom {
+        map_id: new_map_id,
+        room_id: current_room_id,
+        respawn_point: spawn_point,
+    };
+    commands.insert_resource(LoadedMap {
+        data: new_map,
+        path,
+    });
+
+    for mut camera_transform in camera_query {
+        camera_transform.translation.x = spawn_point.x;
+        camera_transform.translation.y = spawn_point.y;
+    }
+    for mut overlay_transform in weather_query {
+        overlay_transform.translation.x = spawn_point.x;
+        overlay_transform.translation.y = spawn_point.y;
+    }
 }
 
 fn switch_map(
@@ -479,7 +609,10 @@ fn switch_map(
         room_id: new_room_id,
         respawn_point: spawn_point,
     };
-    commands.insert_resource(LoadedMap { data: new_map });
+    commands.insert_resource(LoadedMap {
+        data: new_map,
+        path: path.into(),
+    });
 
     // Move camera and weather to spawn point
     for mut camera_transform in camera_query {

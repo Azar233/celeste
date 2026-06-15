@@ -65,7 +65,13 @@ pub const BANGS_OFFSET: Vec2 = Vec2::new(0.0, 4.0);
 pub const BANGS_Z: f32 = 9.6;
 pub const HAIR_SEGMENT_Z: f32 = 9.0;
 pub const WEATHER_OVERLAY_SIZE: Vec2 = Vec2::new(420.0, 240.0);
+pub const BACKGROUND_Z: f32 = -100.0;
 pub const WEATHER_OVERLAY_Z: f32 = 30.0;
 pub const PLAYER_RENDER_Z: f32 = 10.0;
 
 pub const DEATH_THRESHOLD: f32 = -200.0;
+
+pub const DASH_CRYSTAL_SIZE: Vec2 = Vec2::new(8.0, 8.0);
+pub const DASH_CRYSTAL_ANIMATION_INTERVAL: f32 = 0.1;
+pub const DASH_CRYSTAL_RESPAWN_TIME: f32 = 5.0;
+pub const DASH_CRYSTAL_Z: f32 = 1.0;

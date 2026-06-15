@@ -1,8 +1,8 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use bevy::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_MAP_PATH: &str = "assets/maps/chapter_01.json";
 
@@ -10,6 +10,7 @@ pub const DEFAULT_MAP_PATH: &str = "assets/maps/chapter_01.json";
 #[derive(Resource, Clone, Debug)]
 pub struct LoadedMap {
     pub data: MapFile,
+    pub path: PathBuf,
 }
 
 #[allow(dead_code)]
@@ -20,14 +21,14 @@ pub struct ActiveRoom {
     pub respawn_point: Vec2,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MapFile {
     pub id: String,
     pub start_room: String,
     pub rooms: Vec<RoomData>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RoomData {
     pub id: String,
     pub bounds: RectData,
@@ -41,17 +42,19 @@ pub struct RoomData {
     #[serde(default)]
     pub checkpoints: Vec<NamedPoint>,
     #[serde(default)]
+    pub dashcrystals: Vec<NamedPoint>,
+    #[serde(default)]
     pub exits: Vec<RoomExitData>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct NamedPoint {
     pub id: String,
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RectData {
     pub x: f32,
     pub y: f32,
@@ -59,7 +62,7 @@ pub struct RectData {
     pub h: f32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CollisionRect {
     pub kind: CollisionKind,
     pub x: f32,
@@ -71,7 +74,7 @@ pub struct CollisionRect {
     pub art_tag: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CollisionKind {
     SolidGround,
@@ -81,7 +84,7 @@ pub enum CollisionKind {
     EffectZone,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RoomExitData {
     pub id: String,
     pub side: ExitSide,
@@ -95,7 +98,7 @@ pub struct RoomExitData {
     pub preserve_momentum: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExitSide {
     Left,
@@ -144,4 +147,58 @@ pub fn load_map_from_path(path: impl AsRef<Path>) -> Result<MapFile, String> {
 
     serde_json::from_str::<MapFile>(&content)
         .map_err(|error| format!("failed to parse map '{}': {error}", path.display()))
+}
+
+pub fn save_map_to_path(path: impl AsRef<Path>, map: &MapFile) -> Result<(), String> {
+    let path = path.as_ref();
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "failed to create map save directory '{}': {error}",
+                parent.display()
+            )
+        })?;
+    }
+
+    let content = serde_json::to_string_pretty(map)
+        .map_err(|error| format!("failed to serialize map '{}': {error}", map.id))?;
+
+    fs::write(path, format!("{content}\n"))
+        .map_err(|error| format!("failed to write map '{}': {error}", path.display()))
+}
+
+pub fn backup_path_for_map(path: impl AsRef<Path>) -> PathBuf {
+    let path = path.as_ref();
+    let mut backup_extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_string();
+
+    if backup_extension.is_empty() {
+        backup_extension.push_str("bak");
+    } else {
+        backup_extension.push_str(".bak");
+    }
+
+    path.with_extension(backup_extension)
+}
+
+pub fn save_map_to_path_with_backup(path: impl AsRef<Path>, map: &MapFile) -> Result<PathBuf, String> {
+    let path = path.as_ref();
+    let backup_path = backup_path_for_map(path);
+
+    if path.exists() {
+        fs::copy(path, &backup_path).map_err(|error| {
+            format!(
+                "failed to create map backup '{}' from '{}': {error}",
+                backup_path.display(),
+                path.display()
+            )
+        })?;
+    }
+
+    save_map_to_path(path, map)?;
+    Ok(backup_path)
 }

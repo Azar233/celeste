@@ -1,0 +1,874 @@
+use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
+
+use crate::level::{
+    ActiveRoom, CollisionKind, CollisionRect, ExitSide, LoadedMap, NamedPoint, RectData,
+    RoomExitData, save_map_to_path_with_backup,
+};
+
+const GRID_SIZE: f32 = 8.0;
+const MIN_RECT_SIZE: f32 = 8.0;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EditorTool {
+    Select,
+    SolidGround,
+    Hazard,
+    Checkpoint,
+    SpawnPoint,
+    DashCrystal,
+    Exit,
+}
+
+impl EditorTool {
+    fn is_rect_tool(self) -> bool {
+        matches!(self, Self::SolidGround | Self::Hazard | Self::Exit)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EditorSelection {
+    Collision(usize),
+    Hazard(usize),
+    Checkpoint(usize),
+    SpawnPoint(usize),
+    DashCrystal(usize),
+    Exit(usize),
+}
+
+#[derive(Resource, Debug)]
+pub struct EditorState {
+    enabled: bool,
+    tool: EditorTool,
+    selected: Option<EditorSelection>,
+    drag_start: Option<Vec2>,
+    preview_end: Option<Vec2>,
+    next_id: u32,
+    dirty: bool,
+    last_status: String,
+}
+
+impl Default for EditorState {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            tool: EditorTool::Select,
+            selected: None,
+            drag_start: None,
+            preview_end: None,
+            next_id: 1,
+            dirty: false,
+            last_status: "F1: toggle editor".to_string(),
+        }
+    }
+}
+
+pub struct EditorPlugin;
+
+impl Plugin for EditorPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<EditorState>().add_systems(
+            Update,
+            (
+                editor_keyboard_shortcuts,
+                editor_mouse_input,
+                editor_overlay_gizmos,
+            )
+                .chain(),
+        );
+    }
+}
+
+fn editor_keyboard_shortcuts(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut editor: ResMut<EditorState>,
+    mut loaded_map: ResMut<LoadedMap>,
+    active_room: Res<ActiveRoom>,
+) {
+    if keyboard.just_pressed(KeyCode::F1) {
+        editor.enabled = !editor.enabled;
+        editor.drag_start = None;
+        editor.preview_end = None;
+        editor.selected = None;
+        editor.last_status = if editor.enabled {
+            "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit".to_string()
+        } else {
+            "Editor disabled".to_string()
+        };
+        info!("{}", editor.last_status);
+    }
+
+    if !editor.enabled {
+        return;
+    }
+
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        editor.tool = EditorTool::Select;
+        editor.drag_start = None;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit2) {
+        editor.tool = EditorTool::SolidGround;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit3) {
+        editor.tool = EditorTool::Hazard;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit4) {
+        editor.tool = EditorTool::Checkpoint;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit5) {
+        editor.tool = EditorTool::SpawnPoint;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit6) {
+        editor.tool = EditorTool::DashCrystal;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit7) {
+        editor.tool = EditorTool::Exit;
+        editor.selected = None;
+    }
+
+    if keyboard.just_pressed(KeyCode::Delete) {
+        if let Some(selection) = editor.selected.take() {
+            if delete_selection(&mut loaded_map.data, &active_room.room_id, selection) {
+                editor.dirty = true;
+                editor.last_status = format!("Deleted {selection:?}");
+                info!("{}", editor.last_status);
+            }
+        }
+    }
+
+    if handle_selected_exit_shortcuts(&keyboard, &mut editor, &mut loaded_map.data, &active_room.room_id) {
+        editor.dirty = true;
+    }
+
+    let save_pressed = keyboard.just_pressed(KeyCode::KeyS)
+        && (keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight));
+    if save_pressed {
+        match validate_map_for_save(&loaded_map.data) {
+            Ok(()) => match save_map_to_path_with_backup(&loaded_map.path, &loaded_map.data) {
+                Ok(backup_path) => {
+                    editor.dirty = false;
+                    editor.last_status = format!(
+                        "Saved map to {} and backup to {}",
+                        loaded_map.path.display(),
+                        backup_path.display()
+                    );
+                    info!("{}", editor.last_status);
+                }
+                Err(error) => {
+                    editor.last_status = error.clone();
+                    warn!("{error}");
+                }
+            },
+            Err(error) => {
+                editor.last_status = error.clone();
+                warn!("{error}");
+            }
+        }
+    }
+}
+
+fn editor_mouse_input(
+    mouse: Res<ButtonInput<MouseButton>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    mut editor: ResMut<EditorState>,
+    mut loaded_map: ResMut<LoadedMap>,
+    active_room: Res<ActiveRoom>,
+) {
+    if !editor.enabled {
+        return;
+    }
+
+    let Some(world_pos) = cursor_world_position(&window_query, &camera_query) else {
+        return;
+    };
+    let snapped_pos = snap_to_grid(world_pos);
+
+    if editor.tool.is_rect_tool() {
+        if mouse.just_pressed(MouseButton::Left) {
+            editor.drag_start = Some(snapped_pos);
+            editor.preview_end = Some(snapped_pos);
+        }
+
+        if mouse.pressed(MouseButton::Left) && editor.drag_start.is_some() {
+            editor.preview_end = Some(snapped_pos);
+        }
+
+        if mouse.just_released(MouseButton::Left) {
+            let drag_start = editor.drag_start.take();
+            editor.preview_end = None;
+            if let Some(start) = drag_start {
+                let rect = rect_from_points(start, snapped_pos);
+                if rect.w >= MIN_RECT_SIZE && rect.h >= MIN_RECT_SIZE {
+                    let next_id = editor.next_id;
+                    let created = add_rect_object(
+                        &mut loaded_map.data,
+                        &active_room.room_id,
+                        editor.tool,
+                        rect,
+                        next_id,
+                    );
+                    if created {
+                        editor.next_id += 1;
+                        editor.dirty = true;
+                        editor.last_status = format!("Created {:?}", editor.tool);
+                        info!("{}", editor.last_status);
+                    }
+                }
+            }
+        }
+    } else if mouse.just_pressed(MouseButton::Left) {
+        match editor.tool {
+            EditorTool::Select => {
+                editor.selected = pick_object(&loaded_map.data, &active_room.room_id, world_pos);
+                editor.last_status = editor
+                    .selected
+                    .map(|selection| format!("Selected {selection:?}"))
+                    .unwrap_or_else(|| "Selection cleared".to_string());
+                info!("{}", editor.last_status);
+            }
+            EditorTool::Checkpoint | EditorTool::SpawnPoint | EditorTool::DashCrystal => {
+                let id = format!("editor_{}", editor.next_id);
+                let point = NamedPoint {
+                    id,
+                    x: snapped_pos.x,
+                    y: snapped_pos.y,
+                };
+                if add_point_object(&mut loaded_map.data, &active_room.room_id, editor.tool, point) {
+                    editor.next_id += 1;
+                    editor.dirty = true;
+                    editor.last_status = format!("Created {:?}", editor.tool);
+                    info!("{}", editor.last_status);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn editor_overlay_gizmos(
+    mut gizmos: Gizmos,
+    editor: Res<EditorState>,
+    loaded_map: Option<Res<LoadedMap>>,
+    active_room: Option<Res<ActiveRoom>>,
+) {
+    if !editor.enabled {
+        return;
+    }
+
+    let Some(loaded_map) = loaded_map else {
+        return;
+    };
+    let Some(active_room) = active_room else {
+        return;
+    };
+    let Some(room) = loaded_map.data.room(&active_room.room_id) else {
+        return;
+    };
+
+    draw_grid(&mut gizmos, &room.bounds);
+
+    for (index, collision) in room.collision.iter().enumerate() {
+        let Some(color) = editor_collision_color(&collision.kind) else {
+            continue;
+        };
+        let selected = editor.selected == Some(EditorSelection::Collision(index));
+        draw_rect_outline(
+            &mut gizmos,
+            Vec2::new(collision.x, collision.y),
+            Vec2::new(collision.w, collision.h),
+            if selected { Color::WHITE } else { color },
+        );
+    }
+
+    for (index, hazard) in room.hazards.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::Hazard(index));
+        draw_rect_outline(
+            &mut gizmos,
+            hazard.center(),
+            hazard.size(),
+            if selected { Color::WHITE } else { Color::srgb(1.0, 0.2, 0.2) },
+        );
+    }
+
+    for (index, checkpoint) in room.checkpoints.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::Checkpoint(index));
+        draw_point_marker(
+            &mut gizmos,
+            Vec2::new(checkpoint.x, checkpoint.y),
+            6.0,
+            if selected { Color::WHITE } else { Color::srgb(1.0, 0.9, 0.2) },
+        );
+    }
+
+    for (index, spawn) in room.spawn_points.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::SpawnPoint(index));
+        draw_point_marker(
+            &mut gizmos,
+            Vec2::new(spawn.x, spawn.y),
+            5.0,
+            if selected { Color::WHITE } else { Color::srgb(0.25, 0.65, 1.0) },
+        );
+    }
+
+    for (index, dashcrystal) in room.dashcrystals.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::DashCrystal(index));
+        draw_point_marker(
+            &mut gizmos,
+            Vec2::new(dashcrystal.x, dashcrystal.y),
+            6.0,
+            if selected { Color::WHITE } else { Color::srgb(0.35, 1.0, 1.0) },
+        );
+    }
+
+    for (index, exit) in room.exits.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::Exit(index));
+        draw_rect_outline(
+            &mut gizmos,
+            Vec2::new(exit.x, exit.y),
+            Vec2::new(exit.w, exit.h),
+            if selected { Color::WHITE } else { Color::srgb(0.75, 0.35, 1.0) },
+        );
+        draw_exit_markers(&mut gizmos, exit, selected);
+    }
+
+    if let (Some(start), Some(end)) = (editor.drag_start, editor.preview_end) {
+        let rect = rect_from_points(start, end);
+        draw_rect_outline(
+            &mut gizmos,
+            rect.center(),
+            rect.size(),
+            Color::srgba(1.0, 1.0, 1.0, 0.85),
+        );
+    }
+}
+
+fn cursor_world_position(
+    window_query: &Query<&Window, With<PrimaryWindow>>,
+    camera_query: &Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+) -> Option<Vec2> {
+    let window = window_query.get_single().ok()?;
+    let cursor_position = window.cursor_position()?;
+    let (camera, camera_transform) = camera_query.get_single().ok()?;
+    camera.viewport_to_world_2d(camera_transform, cursor_position).ok()
+}
+
+fn snap_to_grid(position: Vec2) -> Vec2 {
+    Vec2::new(
+        (position.x / GRID_SIZE).round() * GRID_SIZE,
+        (position.y / GRID_SIZE).round() * GRID_SIZE,
+    )
+}
+
+fn rect_from_points(a: Vec2, b: Vec2) -> RectData {
+    let min = a.min(b);
+    let max = a.max(b);
+    let size = (max - min).max(Vec2::splat(MIN_RECT_SIZE));
+    let center = (min + max) * 0.5;
+
+    RectData {
+        x: center.x,
+        y: center.y,
+        w: size.x,
+        h: size.y,
+    }
+}
+
+fn room_mut<'a>(map: &'a mut crate::level::MapFile, room_id: &str) -> Option<&'a mut crate::level::RoomData> {
+    map.rooms.iter_mut().find(|room| room.id == room_id)
+}
+
+fn add_rect_object(
+    map: &mut crate::level::MapFile,
+    room_id: &str,
+    tool: EditorTool,
+    rect: RectData,
+    next_id: u32,
+) -> bool {
+    let Some(room) = room_mut(map, room_id) else {
+        return false;
+    };
+
+    match tool {
+        EditorTool::SolidGround => {
+            room.collision.push(CollisionRect {
+                kind: CollisionKind::SolidGround,
+                x: rect.x,
+                y: rect.y,
+                w: rect.w,
+                h: rect.h,
+                art_tag: None,
+            });
+            true
+        }
+        EditorTool::Hazard => {
+            room.hazards.push(rect);
+            true
+        }
+        EditorTool::Exit => {
+            room.exits.push(RoomExitData {
+                id: format!("editor_exit_{next_id}"),
+                side: ExitSide::Right,
+                target_room: room.id.clone(),
+                target_spawn: room.default_spawn.clone(),
+                x: rect.x,
+                y: rect.y,
+                w: rect.w,
+                h: rect.h,
+                preserve_momentum: false,
+            });
+            true
+        }
+        _ => false,
+    }
+}
+
+fn handle_selected_exit_shortcuts(
+    keyboard: &ButtonInput<KeyCode>,
+    editor: &mut EditorState,
+    map: &mut crate::level::MapFile,
+    active_room_id: &str,
+) -> bool {
+    let Some(EditorSelection::Exit(exit_index)) = editor.selected else {
+        return false;
+    };
+
+    let cycle_room = keyboard.just_pressed(KeyCode::Tab);
+    let previous_spawn = keyboard.just_pressed(KeyCode::BracketLeft);
+    let next_spawn = keyboard.just_pressed(KeyCode::BracketRight);
+    let previous_side = keyboard.just_pressed(KeyCode::KeyQ);
+    let next_side = keyboard.just_pressed(KeyCode::KeyE);
+    let toggle_momentum = keyboard.just_pressed(KeyCode::KeyM);
+
+    if !(cycle_room || previous_spawn || next_spawn || previous_side || next_side || toggle_momentum) {
+        return false;
+    }
+
+    let room_infos: Vec<(String, String, Vec<String>)> = map
+        .rooms
+        .iter()
+        .map(|room| {
+            (
+                room.id.clone(),
+                room.default_spawn.clone(),
+                room.spawn_points.iter().map(|spawn| spawn.id.clone()).collect(),
+            )
+        })
+        .collect();
+    let Some(active_room_index) = map.rooms.iter().position(|room| room.id == active_room_id) else {
+        editor.last_status = format!("Cannot edit Exit: active room '{active_room_id}' does not exist");
+        warn!("{}", editor.last_status);
+        return false;
+    };
+    let Some(exit_snapshot) = map.rooms[active_room_index].exits.get(exit_index).cloned() else {
+        editor.last_status = format!("Cannot edit Exit: index {exit_index} no longer exists");
+        warn!("{}", editor.last_status);
+        return false;
+    };
+
+    let mut target_room = exit_snapshot.target_room;
+    let mut target_spawn = exit_snapshot.target_spawn;
+    let mut side = exit_snapshot.side;
+    let mut preserve_momentum = exit_snapshot.preserve_momentum;
+    let mut changed = false;
+
+    if cycle_room && !room_infos.is_empty() {
+        let current_index = room_infos
+            .iter()
+            .position(|(room_id, _, _)| room_id == &target_room)
+            .unwrap_or(0);
+        let next_index = (current_index + 1) % room_infos.len();
+        target_room = room_infos[next_index].0.clone();
+        target_spawn = preferred_spawn_for_room(&room_infos[next_index]);
+        changed = true;
+    }
+
+    if previous_spawn || next_spawn {
+        if let Some(room_info) = room_infos.iter().find(|(room_id, _, _)| room_id == &target_room) {
+            let spawn_ids = spawn_choices_for_room(room_info);
+            if !spawn_ids.is_empty() {
+                let current_index = spawn_ids
+                    .iter()
+                    .position(|spawn_id| spawn_id == &target_spawn)
+                    .unwrap_or(0);
+                let next_index = if previous_spawn {
+                    (current_index + spawn_ids.len() - 1) % spawn_ids.len()
+                } else {
+                    (current_index + 1) % spawn_ids.len()
+                };
+                target_spawn = spawn_ids[next_index].clone();
+                changed = true;
+            }
+        } else {
+            editor.last_status = format!(
+                "Cannot cycle Exit spawn: target room '{}' does not exist",
+                target_room
+            );
+            warn!("{}", editor.last_status);
+        }
+    }
+
+    if previous_side {
+        side = cycle_exit_side(&side, -1);
+        changed = true;
+    }
+    if next_side {
+        side = cycle_exit_side(&side, 1);
+        changed = true;
+    }
+    if toggle_momentum {
+        preserve_momentum = !preserve_momentum;
+        changed = true;
+    }
+
+    if !changed {
+        return false;
+    }
+
+    let Some(exit) = map.rooms[active_room_index].exits.get_mut(exit_index) else {
+        editor.last_status = format!("Cannot edit Exit: index {exit_index} no longer exists");
+        warn!("{}", editor.last_status);
+        return false;
+    };
+    exit.target_room = target_room;
+    exit.target_spawn = target_spawn;
+    exit.side = side;
+    exit.preserve_momentum = preserve_momentum;
+
+    editor.last_status = describe_exit(exit);
+    info!("{}", editor.last_status);
+    true
+}
+
+fn spawn_choices_for_room(room_info: &(String, String, Vec<String>)) -> Vec<String> {
+    let (_, default_spawn, spawn_ids) = room_info;
+    if spawn_ids.is_empty() {
+        vec![default_spawn.clone()]
+    } else {
+        spawn_ids.clone()
+    }
+}
+
+fn preferred_spawn_for_room(room_info: &(String, String, Vec<String>)) -> String {
+    let (_, default_spawn, spawn_ids) = room_info;
+    if spawn_ids.iter().any(|spawn_id| spawn_id == default_spawn) || spawn_ids.is_empty() {
+        default_spawn.clone()
+    } else {
+        spawn_ids[0].clone()
+    }
+}
+
+fn cycle_exit_side(side: &ExitSide, direction: i32) -> ExitSide {
+    let current_index = match side {
+        ExitSide::Left => 0,
+        ExitSide::Right => 1,
+        ExitSide::Top => 2,
+        ExitSide::Bottom => 3,
+    };
+    let next_index = (current_index + direction).rem_euclid(4);
+    match next_index {
+        0 => ExitSide::Left,
+        1 => ExitSide::Right,
+        2 => ExitSide::Top,
+        _ => ExitSide::Bottom,
+    }
+}
+
+fn describe_exit(exit: &RoomExitData) -> String {
+    format!(
+        "Exit '{}' -> room '{}' spawn '{}' side {:?} preserve_momentum={}",
+        exit.id, exit.target_room, exit.target_spawn, exit.side, exit.preserve_momentum
+    )
+}
+
+fn add_point_object(
+    map: &mut crate::level::MapFile,
+    room_id: &str,
+    tool: EditorTool,
+    point: NamedPoint,
+) -> bool {
+    let Some(room) = room_mut(map, room_id) else {
+        return false;
+    };
+
+    match tool {
+        EditorTool::Checkpoint => {
+            room.checkpoints.push(point);
+            true
+        }
+        EditorTool::SpawnPoint => {
+            room.spawn_points.push(point);
+            true
+        }
+        EditorTool::DashCrystal => {
+            room.dashcrystals.push(point);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn delete_selection(
+    map: &mut crate::level::MapFile,
+    room_id: &str,
+    selection: EditorSelection,
+) -> bool {
+    let Some(room) = room_mut(map, room_id) else {
+        return false;
+    };
+
+    match selection {
+        EditorSelection::Collision(index) if index < room.collision.len() => {
+            room.collision.remove(index);
+            true
+        }
+        EditorSelection::Hazard(index) if index < room.hazards.len() => {
+            room.hazards.remove(index);
+            true
+        }
+        EditorSelection::Checkpoint(index) if index < room.checkpoints.len() => {
+            room.checkpoints.remove(index);
+            true
+        }
+        EditorSelection::SpawnPoint(index) if index < room.spawn_points.len() => {
+            room.spawn_points.remove(index);
+            true
+        }
+        EditorSelection::DashCrystal(index) if index < room.dashcrystals.len() => {
+            room.dashcrystals.remove(index);
+            true
+        }
+        EditorSelection::Exit(index) if index < room.exits.len() => {
+            room.exits.remove(index);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn pick_object(
+    map: &crate::level::MapFile,
+    room_id: &str,
+    position: Vec2,
+) -> Option<EditorSelection> {
+    let room = map.room(room_id)?;
+
+    for (index, exit) in room.exits.iter().enumerate().rev() {
+        if point_in_rect(position, Vec2::new(exit.x, exit.y), Vec2::new(exit.w, exit.h)) {
+            return Some(EditorSelection::Exit(index));
+        }
+    }
+
+    for (index, hazard) in room.hazards.iter().enumerate().rev() {
+        if point_in_rect(position, hazard.center(), hazard.size()) {
+            return Some(EditorSelection::Hazard(index));
+        }
+    }
+
+    for (index, collision) in room.collision.iter().enumerate().rev() {
+        if editor_collision_color(&collision.kind).is_some()
+            && point_in_rect(
+                position,
+                Vec2::new(collision.x, collision.y),
+                Vec2::new(collision.w, collision.h),
+            )
+        {
+            return Some(EditorSelection::Collision(index));
+        }
+    }
+
+    for (index, dashcrystal) in room.dashcrystals.iter().enumerate().rev() {
+        if position.distance(Vec2::new(dashcrystal.x, dashcrystal.y)) <= 8.0 {
+            return Some(EditorSelection::DashCrystal(index));
+        }
+    }
+
+    for (index, checkpoint) in room.checkpoints.iter().enumerate().rev() {
+        if position.distance(Vec2::new(checkpoint.x, checkpoint.y)) <= 8.0 {
+            return Some(EditorSelection::Checkpoint(index));
+        }
+    }
+
+    for (index, spawn) in room.spawn_points.iter().enumerate().rev() {
+        if position.distance(Vec2::new(spawn.x, spawn.y)) <= 8.0 {
+            return Some(EditorSelection::SpawnPoint(index));
+        }
+    }
+
+    None
+}
+
+fn editor_collision_color(kind: &CollisionKind) -> Option<Color> {
+    match kind {
+        CollisionKind::SolidGround => Some(Color::srgb(0.2, 0.9, 0.35)),
+        CollisionKind::WallSurface => Some(Color::srgb(0.0, 0.85, 1.0)),
+        CollisionKind::OneWayPlatform => Some(Color::srgb(1.0, 0.9, 0.1)),
+        CollisionKind::CameraZone | CollisionKind::EffectZone => None,
+    }
+}
+
+fn point_in_rect(point: Vec2, center: Vec2, size: Vec2) -> bool {
+    let half = size * 0.5;
+    point.x >= center.x - half.x
+        && point.x <= center.x + half.x
+        && point.y >= center.y - half.y
+        && point.y <= center.y + half.y
+}
+
+fn draw_grid(gizmos: &mut Gizmos, bounds: &RectData) {
+    let left = bounds.x - bounds.w * 0.5;
+    let right = bounds.x + bounds.w * 0.5;
+    let bottom = bounds.y - bounds.h * 0.5;
+    let top = bounds.y + bounds.h * 0.5;
+    let grid_color = Color::srgba(0.45, 0.55, 0.65, 0.25);
+    let bounds_color = Color::srgba(1.0, 1.0, 1.0, 0.7);
+
+    let mut x = (left / GRID_SIZE).floor() * GRID_SIZE;
+    while x <= right {
+        gizmos.line_2d(Vec2::new(x, bottom), Vec2::new(x, top), grid_color);
+        x += GRID_SIZE;
+    }
+
+    let mut y = (bottom / GRID_SIZE).floor() * GRID_SIZE;
+    while y <= top {
+        gizmos.line_2d(Vec2::new(left, y), Vec2::new(right, y), grid_color);
+        y += GRID_SIZE;
+    }
+
+    draw_rect_outline(gizmos, bounds.center(), bounds.size(), bounds_color);
+}
+
+fn draw_rect_outline(gizmos: &mut Gizmos, center: Vec2, size: Vec2, color: Color) {
+    let half = size * 0.5;
+    let min = center - half;
+    let max = center + half;
+    let bl = Vec2::new(min.x, min.y);
+    let br = Vec2::new(max.x, min.y);
+    let tr = Vec2::new(max.x, max.y);
+    let tl = Vec2::new(min.x, max.y);
+
+    gizmos.line_2d(bl, br, color);
+    gizmos.line_2d(br, tr, color);
+    gizmos.line_2d(tr, tl, color);
+    gizmos.line_2d(tl, bl, color);
+}
+
+fn draw_exit_markers(gizmos: &mut Gizmos, exit: &RoomExitData, selected: bool) {
+    let center = Vec2::new(exit.x, exit.y);
+    let half = Vec2::new(exit.w, exit.h) * 0.5;
+    let marker_color = if selected {
+        Color::srgb(1.0, 0.95, 0.2)
+    } else {
+        Color::srgb(0.95, 0.55, 1.0)
+    };
+    let momentum_color = Color::srgb(0.2, 1.0, 0.65);
+    let (edge, inward) = match exit.side {
+        ExitSide::Left => (center + Vec2::new(-half.x, 0.0), Vec2::X),
+        ExitSide::Right => (center + Vec2::new(half.x, 0.0), -Vec2::X),
+        ExitSide::Top => (center + Vec2::new(0.0, half.y), -Vec2::Y),
+        ExitSide::Bottom => (center + Vec2::new(0.0, -half.y), Vec2::Y),
+    };
+    let marker_size = 6.0;
+
+    gizmos.line_2d(edge, edge + inward * marker_size, marker_color);
+    draw_point_marker(gizmos, edge + inward * marker_size, 3.0, marker_color);
+
+    if exit.preserve_momentum {
+        let marker_position = center + Vec2::new(half.x.min(10.0) - 4.0, half.y.min(10.0) - 4.0);
+        gizmos.line_2d(
+            marker_position + Vec2::new(-4.0, 0.0),
+            marker_position + Vec2::new(0.0, 4.0),
+            momentum_color,
+        );
+        gizmos.line_2d(
+            marker_position + Vec2::new(0.0, 4.0),
+            marker_position + Vec2::new(4.0, 0.0),
+            momentum_color,
+        );
+        gizmos.line_2d(
+            marker_position + Vec2::new(4.0, 0.0),
+            marker_position + Vec2::new(0.0, -4.0),
+            momentum_color,
+        );
+        gizmos.line_2d(
+            marker_position + Vec2::new(0.0, -4.0),
+            marker_position + Vec2::new(-4.0, 0.0),
+            momentum_color,
+        );
+    }
+}
+
+fn draw_point_marker(gizmos: &mut Gizmos, position: Vec2, radius: f32, color: Color) {
+    gizmos.line_2d(
+        position + Vec2::new(-radius, 0.0),
+        position + Vec2::new(radius, 0.0),
+        color,
+    );
+    gizmos.line_2d(
+        position + Vec2::new(0.0, -radius),
+        position + Vec2::new(0.0, radius),
+        color,
+    );
+    draw_rect_outline(gizmos, position, Vec2::splat(radius * 1.5), color);
+}
+
+pub fn editor_inactive(editor: Option<Res<EditorState>>) -> bool {
+    editor.map(|state| !state.enabled).unwrap_or(true)
+}
+
+fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {
+    if map.id.trim().is_empty() {
+        return Err("cannot save map with empty id".to_string());
+    }
+    if map.rooms.is_empty() {
+        return Err("cannot save map without rooms".to_string());
+    }
+    if map.room(&map.start_room).is_none() {
+        return Err(format!(
+            "cannot save map because start_room '{}' does not exist",
+            map.start_room
+        ));
+    }
+
+    for room in &map.rooms {
+        if room.id.trim().is_empty() {
+            return Err("cannot save map with empty room id".to_string());
+        }
+        if room.bounds.w <= 0.0 || room.bounds.h <= 0.0 {
+            return Err(format!("room '{}' has invalid bounds", room.id));
+        }
+        for collision in &room.collision {
+            if collision.w <= 0.0 || collision.h <= 0.0 {
+                return Err(format!("room '{}' has invalid collision rectangle", room.id));
+            }
+        }
+        for hazard in &room.hazards {
+            if hazard.w <= 0.0 || hazard.h <= 0.0 {
+                return Err(format!("room '{}' has invalid hazard rectangle", room.id));
+            }
+        }
+        for exit in &room.exits {
+            if exit.w <= 0.0 || exit.h <= 0.0 {
+                return Err(format!("room '{}' has invalid exit rectangle", room.id));
+            }
+            let Some(target_room) = map.room(&exit.target_room) else {
+                return Err(format!(
+                    "room '{}' exit '{}' targets missing room '{}'",
+                    room.id, exit.id, exit.target_room
+                ));
+            };
+            if target_room
+                .spawn_points
+                .iter()
+                .all(|spawn| spawn.id != exit.target_spawn)
+            {
+                return Err(format!(
+                    "room '{}' exit '{}' targets missing spawn '{}' in room '{}'",
+                    room.id, exit.id, exit.target_spawn, exit.target_room
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}

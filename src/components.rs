@@ -42,6 +42,16 @@ pub struct RoomExitMarker {
 }
 
 #[derive(Component)]
+pub struct DashCrystal {
+    pub id: String,
+    pub respawn_timer: f32,
+    pub animation_timer: f32,
+    pub frame_index: usize,
+    pub active_frames: Vec<Handle<Image>>,
+    pub vanished_frame: Handle<Image>,
+}
+
+#[derive(Component)]
 pub struct LevelEntity;
 
 #[derive(Component)]

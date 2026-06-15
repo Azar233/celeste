@@ -6,14 +6,15 @@ use bevy::sprite::Anchor;
 
 use crate::components::{
     AnimationState, AnimationTimer, CheckpointMarker, ClimbTopOutState, ColliderSize, Crouching,
-    DashSlideState, DashState, DashTrailEmitter, Facing, Ground, Grounded, Hair, HairBangs,
-    HairMaterial, HairSegment, Hazard, JumpState, LevelEntity, MovementInput, Player,
+    DashCrystal, DashSlideState, DashState, DashTrailEmitter, Facing, Ground, Grounded, Hair,
+    HairBangs, HairMaterial, HairSegment, Hazard, JumpState, LevelEntity, MovementInput, Player,
     PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, RoomExitMarker, Velocity,
     WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
 };
 use crate::constants::{
-    BANGS_Z, HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
-    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
+    BACKGROUND_Z, BANGS_Z, DASH_CRYSTAL_SIZE, DASH_CRYSTAL_Z, HAIR_OUTLINE_WIDTH,
+    HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z, PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
+    WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::level::{
     ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, ExitSide, LoadedMap, RectData,
@@ -29,12 +30,15 @@ const DANGER_LEFTRIGHT_SIZE: Vec2 = Vec2::new(9.0, 10.0);
 
 #[derive(Resource, Clone)]
 pub struct LevelArt {
+    pub background: Handle<Image>,
     pub dirt_texture: Handle<Image>,
     pub dirt_layout: Handle<TextureAtlasLayout>,
     pub danger_up: Handle<Image>,
     pub danger_down: Handle<Image>,
     pub danger_left: Handle<Image>,
     pub danger_right: Handle<Image>,
+    pub dash_crystal_frames: Vec<Handle<Image>>,
+    pub dash_crystal_vanished: Handle<Image>,
 }
 
 #[derive(Clone, Copy)]
@@ -94,6 +98,7 @@ pub fn setup(
     let bangs_texture = asset_server.load("bangs.png");
 
     let level_art = LevelArt {
+        background: asset_server.load("figs/bgs/01/bg0.png"),
         dirt_texture: asset_server.load("figs/tilesets/dirt.png"),
         dirt_layout: texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
             UVec2::splat(TILE_SIZE as u32),
@@ -106,6 +111,14 @@ pub fn setup(
         danger_down: asset_server.load("figs/danger/outline_down00.png"),
         danger_left: asset_server.load("figs/danger/outline_left00.png"),
         danger_right: asset_server.load("figs/danger/outline_right00.png"),
+        dash_crystal_frames: vec![
+            asset_server.load("figs/DashCystal/F1.png"),
+            asset_server.load("figs/DashCystal/F2.png"),
+            asset_server.load("figs/DashCystal/F3.png"),
+            asset_server.load("figs/DashCystal/F4.png"),
+            asset_server.load("figs/DashCystal/F5.png"),
+        ],
+        dash_crystal_vanished: asset_server.load("figs/DashCystal/vanished.png"),
     };
 
     let map = load_map_from_path(DEFAULT_MAP_PATH)
@@ -120,7 +133,10 @@ pub fn setup(
         )
     });
 
-    commands.insert_resource(LoadedMap { data: map.clone() });
+    commands.insert_resource(LoadedMap {
+        data: map.clone(),
+        path: DEFAULT_MAP_PATH.into(),
+    });
     commands.insert_resource(ActiveRoom {
         map_id: map.id.clone(),
         room_id: room.id.clone(),
@@ -334,6 +350,8 @@ fn spawn_player(
 }
 
 pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: &LevelArt) {
+    spawn_room_background(commands, room, level_art);
+
     let solid_cells = collect_solid_cells(room);
 
     for collision in &room.collision {
@@ -394,6 +412,26 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
         ));
     }
 
+    for dashcrystal in &room.dashcrystals {
+        commands.spawn((
+            DashCrystal {
+                id: dashcrystal.id.clone(),
+                respawn_timer: 0.0,
+                animation_timer: 0.0,
+                frame_index: 0,
+                active_frames: level_art.dash_crystal_frames.clone(),
+                vanished_frame: level_art.dash_crystal_vanished.clone(),
+            },
+            LevelEntity,
+            Sprite {
+                image: level_art.dash_crystal_frames[0].clone(),
+                custom_size: Some(DASH_CRYSTAL_SIZE),
+                ..default()
+            },
+            Transform::from_xyz(dashcrystal.x, dashcrystal.y, DASH_CRYSTAL_Z),
+        ));
+    }
+
     for exit in &room.exits {
         let tint = match exit.side {
             ExitSide::Left | ExitSide::Right => Color::srgba(0.3, 0.9, 0.5, 0.25),
@@ -427,55 +465,19 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
         },
         Transform::from_xyz(room.bounds.x, room.bounds.y, -1.0),
     ));
-
-    spawn_boundary_walls(commands, room);
 }
 
-fn spawn_boundary_walls(commands: &mut Commands, room: &RoomData) {
-    let bounds = &room.bounds;
-    let thickness = TILE_SIZE;
-    let half_w = bounds.w * 0.5;
-    let half_h = bounds.h * 0.5;
-
-    let has_left_exit = room.exits.iter().any(|e| e.side == ExitSide::Left);
-    let has_right_exit = room.exits.iter().any(|e| e.side == ExitSide::Right);
-    let has_top_exit = room.exits.iter().any(|e| e.side == ExitSide::Top);
-    if !has_left_exit {
-        commands.spawn((
-            Ground,
-            LevelEntity,
-            Sprite {
-                color: Color::NONE,
-                custom_size: Some(Vec2::new(thickness, bounds.h)),
-                ..default()
-            },
-            Transform::from_xyz(bounds.x - half_w, bounds.y, 0.0),
-        ));
-    }
-    if !has_right_exit {
-        commands.spawn((
-            Ground,
-            LevelEntity,
-            Sprite {
-                color: Color::NONE,
-                custom_size: Some(Vec2::new(thickness, bounds.h)),
-                ..default()
-            },
-            Transform::from_xyz(bounds.x + half_w, bounds.y, 0.0),
-        ));
-    }
-    if !has_top_exit {
-        commands.spawn((
-            Ground,
-            LevelEntity,
-            Sprite {
-                color: Color::NONE,
-                custom_size: Some(Vec2::new(bounds.w, thickness)),
-                ..default()
-            },
-            Transform::from_xyz(bounds.x, bounds.y + half_h, 0.0),
-        ));
-    }
+fn spawn_room_background(commands: &mut Commands, room: &RoomData, level_art: &LevelArt) {
+    commands.spawn((
+        LevelEntity,
+        Name::new(format!("room_background:{}", room.id)),
+        Sprite {
+            image: level_art.background.clone(),
+            custom_size: Some(room.bounds.size()),
+            ..default()
+        },
+        Transform::from_xyz(room.bounds.x, room.bounds.y, BACKGROUND_Z),
+    ));
 }
 
 fn collect_solid_cells(room: &RoomData) -> HashSet<(i32, i32)> {
@@ -564,11 +566,13 @@ fn tile_exposure_mask(gx: i32, gy: i32, solid_cells: &HashSet<(i32, i32)>) -> u8
 }
 
 fn choose_dirt_tile(mask: u8, gx: i32, gy: i32) -> usize {
+    if mask == 0 {
+        return  5;
+        //let seed = (gx.wrapping_mul(73856093) ^ gy.wrapping_mul(19349663)).unsigned_abs() as usize;
+        //return if seed % 100 < 85 { 11 } else { 4 };
+    }
+
     let candidates: &[usize] = match mask {
-        0 => &[
-            4, 5, 10, 11, 16, 17, 22, 23, 28, 29, 34, 35, 40, 41, 46, 47, 52, 53, 58, 59, 64, 65,
-            70, 71, 76, 77, 82, 83, 88, 89,
-        ],
         1 => &[3],
         2 => &[6],
         4 => &[13, 14, 16],
@@ -640,6 +644,8 @@ fn detect_hazard_direction(
     hazard: &RectData,
     solid_cells: &HashSet<(i32, i32)>,
 ) -> HazardDirection {
+    // Direction names describe the spike tip direction, not the side of the solid it is attached to:
+    // top face -> Up, ceiling underside -> Down, left wall side -> Right, right wall side -> Left.
     let (min_x, max_x, min_y, max_y) = rect_to_grid_bounds(hazard.x, hazard.y, hazard.w, hazard.h);
     let mut up_score = 0;
     let mut down_score = 0;

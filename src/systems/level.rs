@@ -1,11 +1,14 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    CheckpointMarker, ClimbTopOutState, ColliderSize, Crouching, DashSlideState, DashState, Facing,
-    Grounded, Hair, Hazard, LevelEntity, Player, PlayerState, PlayerStateMachine, RoomExitMarker,
-    Velocity, WallContact, WeatherOverlay,
+    CheckpointMarker, ClimbTopOutState, ColliderSize, Crouching, DashCrystal, DashSlideState,
+    DashState, Facing, Grounded, Hair, Hazard, LevelEntity, Player, PlayerState,
+    PlayerStateMachine, RoomExitMarker, Velocity, WallContact, WeatherOverlay,
 };
-use crate::constants::{PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z};
+use crate::constants::{
+    DASH_CRYSTAL_ANIMATION_INTERVAL, DASH_CRYSTAL_RESPAWN_TIME, PLAYER_COLLIDER_SIZE,
+    PLAYER_RENDER_Z,
+};
 use crate::level::{ActiveRoom, LoadedMap};
 use crate::scene::{LevelArt, spawn_room_geometry};
 use crate::utils::{check_collision, initial_hair_positions};
@@ -70,6 +73,57 @@ pub fn update_checkpoint_respawn(
         ) {
             let _checkpoint_id = &checkpoint.id;
             active_room.respawn_point = checkpoint_transform.translation.truncate();
+        }
+    }
+}
+
+pub fn update_dash_crystals(
+    time: Res<Time>,
+    mut crystals: Query<(&Transform, &mut Sprite, &mut DashCrystal), Without<Player>>,
+    mut player_query: Query<(&Transform, &ColliderSize, &mut DashState), With<Player>>,
+) {
+    let dt = time.delta_secs();
+    let Ok((player_transform, player_size, mut dash_state)) = player_query.get_single_mut() else {
+        return;
+    };
+
+    for (crystal_transform, mut sprite, mut crystal) in &mut crystals {
+        if crystal.respawn_timer > 0.0 {
+            crystal.respawn_timer = (crystal.respawn_timer - dt).max(0.0);
+            if crystal.respawn_timer <= 0.0 && !crystal.active_frames.is_empty() {
+                crystal.frame_index = 0;
+                crystal.animation_timer = 0.0;
+                sprite.image = crystal.active_frames[0].clone();
+            }
+            continue;
+        }
+
+        if !crystal.active_frames.is_empty() {
+            crystal.animation_timer += dt;
+            while crystal.animation_timer >= DASH_CRYSTAL_ANIMATION_INTERVAL {
+                crystal.animation_timer -= DASH_CRYSTAL_ANIMATION_INTERVAL;
+                crystal.frame_index = (crystal.frame_index + 1) % crystal.active_frames.len();
+                sprite.image = crystal.active_frames[crystal.frame_index].clone();
+            }
+        }
+
+        let Some(crystal_size) = sprite.custom_size else {
+            continue;
+        };
+
+        if dash_state.dashes_remaining == 0
+            && check_collision(
+                player_transform.translation,
+                player_size.0,
+                crystal_transform.translation,
+                crystal_size,
+            )
+        {
+            let _crystal_id = &crystal.id;
+            dash_state.dashes_remaining = 1;
+            crystal.respawn_timer = DASH_CRYSTAL_RESPAWN_TIME;
+            crystal.animation_timer = 0.0;
+            sprite.image = crystal.vanished_frame.clone();
         }
     }
 }
@@ -248,7 +302,12 @@ pub fn handle_room_transitions(
     spawn_room_geometry(&mut commands, target_room, &level_art);
 
     active_room.room_id = target_room.id.clone();
-    active_room.respawn_point = target_spawn;
+    active_room.respawn_point = target_room
+        .checkpoints
+        .first()
+        .map(|checkpoint| Vec2::new(checkpoint.x, checkpoint.y))
+        .or_else(|| target_room.default_spawn_point())
+        .unwrap_or(target_spawn);
 
     reset_player_to_spawn(
         &mut player_transform,

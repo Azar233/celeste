@@ -1,0 +1,1119 @@
+{
+  "id": "chapter_05",
+  "start_room": "room_00",
+  "rooms": [
+    {
+      "id": "room_00",
+      "bounds": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "start",
+      "spawn_points": [
+        {
+          "id": "start",
+          "x": -128.0,
+          "y": -47.0
+        },
+        {
+          "id": "from_room_01",
+          "x": 120.0,
+          "y": -15.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": -128.0,
+          "y": -64.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_entry_slab"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 56.0,
+          "y": -32.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_middle_bridge"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 112.0,
+          "y": -32.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "snow_city_exit_bridge"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -96.0,
+          "y": 8.0,
+          "w": 48.0,
+          "h": 16.0,
+          "art_tag": "snow_city_upper_snow_lip"
+        },
+        {
+          "kind": "wall_surface",
+          "x": -152.0,
+          "y": -8.0,
+          "w": 16.0,
+          "h": 112.0,
+          "art_tag": "snow_city_left_ruin"
+        },
+        {
+          "kind": "wall_surface",
+          "x": -24.0,
+          "y": 0.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_cracked_pillar"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 72.0,
+          "y": 16.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_narrow_tower"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 0.0,
+          "y": 0.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -60.0,
+          "y": 20.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -60.0,
+          "y": 36.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -60.0,
+          "y": 28.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -64.0,
+          "y": -44.0,
+          "w": 64.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -64.0,
+          "y": -52.0,
+          "w": 64.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -24.0,
+          "y": -4.0,
+          "w": 16.0,
+          "h": 104.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 28.0,
+          "y": -64.0,
+          "w": 248.0,
+          "h": 16.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 88.0,
+          "y": -48.0,
+          "w": 128.0,
+          "h": 16.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 28.0,
+          "y": -32.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 72.0,
+          "y": 20.0,
+          "w": 16.0,
+          "h": 88.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 120.0,
+          "y": -64.0,
+          "w": 416.0,
+          "h": 32.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [
+        {
+          "x": -12.0,
+          "y": 28.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": -12.0,
+          "y": 36.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": -12.0,
+          "y": 44.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": -28.0,
+          "y": 52.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": -20.0,
+          "y": 52.0,
+          "w": 8.0,
+          "h": 8.0
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "room_00_entry",
+          "x": -128.0,
+          "y": -47.0
+        },
+        {
+          "id": "room_00_exit",
+          "x": 120.0,
+          "y": -15.0
+        },
+        {
+          "id": "editor_11",
+          "x": 48.0,
+          "y": -0.0
+        },
+        {
+          "id": "editor_12",
+          "x": 48.0,
+          "y": -0.0
+        },
+        {
+          "id": "editor_13",
+          "x": 48.0,
+          "y": 0.0
+        }
+      ],
+      "dashcrystals": [
+        {
+          "id": "editor_1",
+          "x": -136.0,
+          "y": 24.0
+        }
+      ],
+      "exits": [
+        {
+          "id": "room_00_to_01",
+          "side": "right",
+          "target_room": "room_01",
+          "target_spawn": "left_entry",
+          "x": 160.0,
+          "y": -8.0,
+          "w": 16.0,
+          "h": 128.0,
+          "preserve_momentum": true
+        }
+      ]
+    },
+    {
+      "id": "room_01",
+      "bounds": {
+        "x": 320.0,
+        "y": 0.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "left_entry",
+      "spawn_points": [
+        {
+          "id": "left_entry",
+          "x": 200.0,
+          "y": -39.0
+        },
+        {
+          "id": "from_room_02",
+          "x": 440.0,
+          "y": 33.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": 200.0,
+          "y": -56.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "snow_city_low_entry"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 272.0,
+          "y": -40.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_short_hanging_slab"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 336.0,
+          "y": -16.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_mid_safe_chip"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 400.0,
+          "y": 16.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_upper_approach"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 456.0,
+          "y": 16.0,
+          "w": 80.0,
+          "h": 16.0,
+          "art_tag": "snow_city_upper_exit_slab"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 176.0,
+          "y": -8.0,
+          "w": 16.0,
+          "h": 128.0,
+          "art_tag": "snow_city_left_broken_face"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 320.0,
+          "y": 8.0,
+          "w": 16.0,
+          "h": 112.0,
+          "art_tag": "snow_city_split_column"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 424.0,
+          "y": 24.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_right_climb_wall"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 320.0,
+          "y": 0.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 244.0,
+          "y": -52.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 244.0,
+          "y": -52.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 360.0,
+          "y": -56.0,
+          "w": 240.0,
+          "h": 16.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 240.0,
+          "y": -60.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 240.0,
+          "y": -56.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 240.0,
+          "y": -52.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 320.0,
+          "y": 28.0,
+          "w": 16.0,
+          "h": 72.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 320.0,
+          "y": -36.0,
+          "w": 16.0,
+          "h": 24.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 308.0,
+          "y": -40.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 312.0,
+          "y": -16.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [],
+      "checkpoints": [
+        {
+          "id": "room_01_entry",
+          "x": 200.0,
+          "y": -39.0
+        },
+        {
+          "id": "room_01_upper",
+          "x": 440.0,
+          "y": 33.0
+        }
+      ],
+      "dashcrystals": [],
+      "exits": [
+        {
+          "id": "room_01_to_00",
+          "side": "left",
+          "target_room": "room_00",
+          "target_spawn": "from_room_01",
+          "x": 160.0,
+          "y": -8.0,
+          "w": 16.0,
+          "h": 128.0,
+          "preserve_momentum": true
+        },
+        {
+          "id": "room_01_to_02",
+          "side": "right",
+          "target_room": "room_02",
+          "target_spawn": "left_entry",
+          "x": 480.0,
+          "y": 24.0,
+          "w": 16.0,
+          "h": 112.0,
+          "preserve_momentum": true
+        }
+      ]
+    },
+    {
+      "id": "room_02",
+      "bounds": {
+        "x": 640.0,
+        "y": 0.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "left_entry",
+      "spawn_points": [
+        {
+          "id": "left_entry",
+          "x": 528.0,
+          "y": 33.0
+        },
+        {
+          "id": "from_room_03",
+          "x": 760.0,
+          "y": 57.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": 528.0,
+          "y": 16.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "snow_city_roof_entry"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 600.0,
+          "y": 0.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_dropped_roof_chunk"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 784.0,
+          "y": 40.0,
+          "w": 96.0,
+          "h": 16.0,
+          "art_tag": "snow_city_top_exit_shelf"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 504.0,
+          "y": 8.0,
+          "w": 16.0,
+          "h": 128.0,
+          "art_tag": "snow_city_left_ragged_wall"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 640.0,
+          "y": 0.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [
+        {
+          "x": 728.0,
+          "y": 96.0,
+          "w": 16.0,
+          "h": 16.0
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "room_02_entry",
+          "x": 528.0,
+          "y": 33.0
+        },
+        {
+          "id": "room_02_rooftop",
+          "x": 760.0,
+          "y": 57.0
+        }
+      ],
+      "dashcrystals": [],
+      "exits": [
+        {
+          "id": "room_02_to_01",
+          "side": "left",
+          "target_room": "room_01",
+          "target_spawn": "from_room_02",
+          "x": 480.0,
+          "y": 24.0,
+          "w": 16.0,
+          "h": 112.0,
+          "preserve_momentum": true
+        },
+        {
+          "id": "room_02_to_03",
+          "side": "top",
+          "target_room": "room_03",
+          "target_spawn": "bottom_entry",
+          "x": 752.0,
+          "y": 88.0,
+          "w": 96.0,
+          "h": 16.0,
+          "preserve_momentum": false
+        }
+      ]
+    },
+    {
+      "id": "room_03",
+      "bounds": {
+        "x": 640.0,
+        "y": 180.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "bottom_entry",
+      "spawn_points": [
+        {
+          "id": "bottom_entry",
+          "x": 560.0,
+          "y": 121.0
+        },
+        {
+          "id": "from_room_04",
+          "x": 760.0,
+          "y": 217.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": 560.0,
+          "y": 104.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "snow_city_shaft_entry"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 624.0,
+          "y": 128.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_shaft_lower_chip"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 688.0,
+          "y": 152.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_shaft_middle_chip"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 744.0,
+          "y": 176.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_shaft_balcony"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 800.0,
+          "y": 200.0,
+          "w": 96.0,
+          "h": 16.0,
+          "art_tag": "snow_city_shaft_exit_slab"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 600.0,
+          "y": 152.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_shaft_left_wall"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 688.0,
+          "y": 200.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_shaft_right_wall"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 824.0,
+          "y": 208.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_shaft_outer_face"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 640.0,
+          "y": 180.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [
+        {
+          "x": 616.0,
+          "y": 200.0,
+          "w": 16.0,
+          "h": 32.0
+        },
+        {
+          "x": 672.0,
+          "y": 240.0,
+          "w": 16.0,
+          "h": 16.0
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "room_03_entry",
+          "x": 560.0,
+          "y": 121.0
+        },
+        {
+          "id": "room_03_high",
+          "x": 760.0,
+          "y": 217.0
+        }
+      ],
+      "dashcrystals": [],
+      "exits": [
+        {
+          "id": "room_03_to_02",
+          "side": "bottom",
+          "target_room": "room_02",
+          "target_spawn": "from_room_03",
+          "x": 704.0,
+          "y": 88.0,
+          "w": 96.0,
+          "h": 16.0,
+          "preserve_momentum": false
+        },
+        {
+          "id": "room_03_to_04",
+          "side": "right",
+          "target_room": "room_04",
+          "target_spawn": "left_entry",
+          "x": 800.0,
+          "y": 208.0,
+          "w": 16.0,
+          "h": 112.0,
+          "preserve_momentum": true
+        }
+      ]
+    },
+    {
+      "id": "room_04",
+      "bounds": {
+        "x": 960.0,
+        "y": 180.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "left_entry",
+      "spawn_points": [
+        {
+          "id": "left_entry",
+          "x": 848.0,
+          "y": 201.0
+        },
+        {
+          "id": "from_room_05",
+          "x": 1096.0,
+          "y": 257.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": 848.0,
+          "y": 184.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "snow_city_bridge_entry"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 920.0,
+          "y": 184.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_bridge_repaired_span"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 984.0,
+          "y": 200.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_bridge_mid_step"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1048.0,
+          "y": 216.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_bridge_hanging_plate"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1120.0,
+          "y": 240.0,
+          "w": 96.0,
+          "h": 16.0,
+          "art_tag": "snow_city_bridge_upper_landing"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 824.0,
+          "y": 192.0,
+          "w": 16.0,
+          "h": 112.0,
+          "art_tag": "snow_city_bridge_left_ruin"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 960.0,
+          "y": 180.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 888.0,
+          "y": 184.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [
+        {
+          "x": 1000.0,
+          "y": 288.0,
+          "w": 16.0,
+          "h": 16.0
+        },
+        {
+          "x": 1064.0,
+          "y": 304.0,
+          "w": 16.0,
+          "h": 16.0
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "room_04_entry",
+          "x": 848.0,
+          "y": 201.0
+        },
+        {
+          "id": "room_04_landing",
+          "x": 1096.0,
+          "y": 257.0
+        }
+      ],
+      "dashcrystals": [],
+      "exits": [
+        {
+          "id": "room_04_to_03",
+          "side": "left",
+          "target_room": "room_03",
+          "target_spawn": "from_room_04",
+          "x": 800.0,
+          "y": 208.0,
+          "w": 16.0,
+          "h": 112.0,
+          "preserve_momentum": true
+        },
+        {
+          "id": "room_04_to_05",
+          "side": "top",
+          "target_room": "room_05",
+          "target_spawn": "bottom_entry",
+          "x": 1056.0,
+          "y": 280.0,
+          "w": 96.0,
+          "h": 16.0,
+          "preserve_momentum": false
+        }
+      ]
+    },
+    {
+      "id": "room_05",
+      "bounds": {
+        "x": 960.0,
+        "y": 360.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "bottom_entry",
+      "spawn_points": [
+        {
+          "id": "bottom_entry",
+          "x": 872.0,
+          "y": 313.0
+        },
+        {
+          "id": "from_room_06",
+          "x": 1160.0,
+          "y": 385.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": 872.0,
+          "y": 296.0,
+          "w": 80.0,
+          "h": 16.0,
+          "art_tag": "snow_city_courtyard_entry"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 952.0,
+          "y": 312.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_courtyard_low_step"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1016.0,
+          "y": 328.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_courtyard_middle_step"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1080.0,
+          "y": 352.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_courtyard_high_chip"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1160.0,
+          "y": 368.0,
+          "w": 96.0,
+          "h": 16.0,
+          "art_tag": "snow_city_courtyard_right_shelf"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 840.0,
+          "y": 328.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_courtyard_left_wall"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 1016.0,
+          "y": 376.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_courtyard_tall_face"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 960.0,
+          "y": 360.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [],
+      "checkpoints": [
+        {
+          "id": "room_05_entry",
+          "x": 872.0,
+          "y": 313.0
+        },
+        {
+          "id": "room_05_right",
+          "x": 1160.0,
+          "y": 385.0
+        }
+      ],
+      "dashcrystals": [],
+      "exits": [
+        {
+          "id": "room_05_to_04",
+          "side": "bottom",
+          "target_room": "room_04",
+          "target_spawn": "from_room_05",
+          "x": 1056.0,
+          "y": 280.0,
+          "w": 96.0,
+          "h": 16.0,
+          "preserve_momentum": false
+        },
+        {
+          "id": "room_05_to_06",
+          "side": "right",
+          "target_room": "room_06",
+          "target_spawn": "left_entry",
+          "x": 1120.0,
+          "y": 408.0,
+          "w": 16.0,
+          "h": 112.0,
+          "preserve_momentum": true
+        }
+      ]
+    },
+    {
+      "id": "room_06",
+      "bounds": {
+        "x": 1280.0,
+        "y": 360.0,
+        "w": 320.0,
+        "h": 180.0
+      },
+      "default_spawn": "left_entry",
+      "spawn_points": [
+        {
+          "id": "left_entry",
+          "x": 1168.0,
+          "y": 385.0
+        }
+      ],
+      "collision": [
+        {
+          "kind": "solid_ground",
+          "x": 1168.0,
+          "y": 368.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "snow_city_final_entry"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1240.0,
+          "y": 368.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_final_repaired_step"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1304.0,
+          "y": 384.0,
+          "w": 56.0,
+          "h": 16.0,
+          "art_tag": "snow_city_final_mid_perch"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1368.0,
+          "y": 400.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow_city_final_last_step"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1440.0,
+          "y": 408.0,
+          "w": 112.0,
+          "h": 16.0,
+          "art_tag": "snow_city_final_finish_roof"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 1152.0,
+          "y": 360.0,
+          "w": 16.0,
+          "h": 112.0,
+          "art_tag": "snow_city_final_left_ruin"
+        },
+        {
+          "kind": "wall_surface",
+          "x": 1488.0,
+          "y": 392.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "snow_city_final_broken_end"
+        },
+        {
+          "kind": "camera_zone",
+          "x": 1280.0,
+          "y": 360.0,
+          "w": 320.0,
+          "h": 180.0,
+          "art_tag": null
+        }
+      ],
+      "hazards": [
+        {
+          "x": 1304.0,
+          "y": 464.0,
+          "w": 16.0,
+          "h": 16.0
+        },
+        {
+          "x": 1360.0,
+          "y": 472.0,
+          "w": 16.0,
+          "h": 16.0
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "room_06_entry",
+          "x": 1168.0,
+          "y": 385.0
+        },
+        {
+          "id": "room_06_finish",
+          "x": 1408.0,
+          "y": 425.0
+        }
+      ],
+      "dashcrystals": [],
+      "exits": [
+        {
+          "id": "room_06_to_05",
+          "side": "left",
+          "target_room": "room_05",
+          "target_spawn": "from_room_06",
+          "x": 1120.0,
+          "y": 408.0,
+          "w": 16.0,
+          "h": 112.0,
+          "preserve_momentum": true
+        }
+      ]
+    }
+  ]
+}
