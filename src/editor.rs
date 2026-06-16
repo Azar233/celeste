@@ -11,6 +11,7 @@ use crate::level::{
 };
 
 const GRID_SIZE: f32 = 8.0;
+const MOVE_DRAG_GRID_SIZE: f32 = GRID_SIZE * 0.5;
 const MIN_RECT_SIZE: f32 = 8.0;
 const DEFAULT_CAMERA_SCALE: f32 = 1.0;
 const DEFAULT_CAMERA_VIEWPORT_HEIGHT: f32 = 180.0;
@@ -47,11 +48,20 @@ enum EditorSelection {
     CompletionZone(usize),
 }
 
+#[derive(Clone, Copy, Debug)]
+struct MoveDragState {
+    selection: EditorSelection,
+    start_mouse: Vec2,
+    original_position: Vec2,
+    moved: bool,
+}
+
 #[derive(Resource, Debug)]
 pub struct EditorState {
     enabled: bool,
     tool: EditorTool,
     selected: Option<EditorSelection>,
+    move_drag: Option<MoveDragState>,
     drag_start: Option<Vec2>,
     preview_end: Option<Vec2>,
     next_id: u32,
@@ -66,6 +76,7 @@ impl Default for EditorState {
             enabled: false,
             tool: EditorTool::Select,
             selected: None,
+            move_drag: None,
             drag_start: None,
             preview_end: None,
             next_id: 1,
@@ -103,6 +114,7 @@ fn editor_keyboard_shortcuts(
 ) {
     if keyboard.just_pressed(KeyCode::F1) {
         editor.enabled = !editor.enabled;
+        editor.move_drag = None;
         editor.drag_start = None;
         editor.preview_end = None;
         editor.selected = None;
@@ -124,28 +136,36 @@ fn editor_keyboard_shortcuts(
 
     if keyboard.just_pressed(KeyCode::Digit1) {
         editor.tool = EditorTool::Select;
+        editor.move_drag = None;
         editor.drag_start = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit2) {
         editor.tool = EditorTool::SolidGround;
+        editor.move_drag = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit3) {
         editor.tool = EditorTool::Hazard;
+        editor.move_drag = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit4) {
         editor.tool = EditorTool::Checkpoint;
+        editor.move_drag = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit5) {
         editor.tool = EditorTool::SpawnPoint;
+        editor.move_drag = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit6) {
         editor.tool = EditorTool::DashCrystal;
+        editor.move_drag = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit7) {
         editor.tool = EditorTool::Exit;
+        editor.move_drag = None;
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit8) {
         editor.tool = EditorTool::CompletionZone;
+        editor.move_drag = None;
         editor.selected = None;
     }
 
@@ -282,9 +302,61 @@ fn editor_mouse_input(
     }
 
     let Some(world_pos) = cursor_world_position(&window_query, &camera_query) else {
+        if mouse.just_released(MouseButton::Left) {
+            editor.move_drag = None;
+        }
         return;
     };
     let snapped_pos = snap_to_grid(world_pos);
+    let snapped_move_pos = snap_to_move_drag_grid(world_pos);
+
+    if mouse.just_pressed(MouseButton::Left) {
+        if let Some(selection) = editor.selected {
+            if pick_object(&loaded_map.data, &active_room.room_id, world_pos) == Some(selection) {
+                if let Some(original_position) = selection_position(&loaded_map.data, &active_room.room_id, selection) {
+                    editor.move_drag = Some(MoveDragState {
+                        selection,
+                        start_mouse: snapped_move_pos,
+                        original_position,
+                        moved: false,
+                    });
+                    editor.drag_start = None;
+                    editor.preview_end = None;
+                    return;
+                }
+            }
+        }
+    }
+
+    if let Some(mut move_drag) = editor.move_drag {
+        if mouse.pressed(MouseButton::Left) {
+            let target_position = snap_to_move_drag_grid(move_drag.original_position + (snapped_move_pos - move_drag.start_mouse));
+            if target_position != move_drag.original_position {
+                match move_selection_to(&mut loaded_map.data, &active_room.room_id, move_drag.selection, target_position) {
+                    Ok(()) => {
+                        move_drag.moved = true;
+                        editor.move_drag = Some(move_drag);
+                        editor.dirty = true;
+                    }
+                    Err(error) => {
+                        editor.move_drag = None;
+                        editor.last_status = error;
+                        warn!("{}", editor.last_status);
+                    }
+                }
+            }
+            return;
+        }
+
+        if mouse.just_released(MouseButton::Left) {
+            editor.move_drag = None;
+            if move_drag.moved {
+                editor.last_status = format!("Moved {:?}", move_drag.selection);
+                info!("{}", editor.last_status);
+            }
+            return;
+        }
+    }
 
     if editor.tool.is_rect_tool() {
         if mouse.just_pressed(MouseButton::Left) {
@@ -472,9 +544,17 @@ fn cursor_world_position(
 }
 
 fn snap_to_grid(position: Vec2) -> Vec2 {
+    snap_to_step(position, GRID_SIZE)
+}
+
+fn snap_to_move_drag_grid(position: Vec2) -> Vec2 {
+    snap_to_step(position, MOVE_DRAG_GRID_SIZE)
+}
+
+fn snap_to_step(position: Vec2, step: f32) -> Vec2 {
     Vec2::new(
-        (position.x / GRID_SIZE).round() * GRID_SIZE,
-        (position.y / GRID_SIZE).round() * GRID_SIZE,
+        (position.x / step).round() * step,
+        (position.y / step).round() * step,
     )
 }
 
@@ -596,6 +676,101 @@ fn set_collision_tileset(
 
     collision.art_tag = Some(art_tag.to_string());
     true
+}
+
+fn selection_position(
+    map: &crate::level::MapFile,
+    room_id: &str,
+    selection: EditorSelection,
+) -> Option<Vec2> {
+    let room = map.room(room_id)?;
+
+    match selection {
+        EditorSelection::Collision(index) => room
+            .collision
+            .get(index)
+            .map(|collision| Vec2::new(collision.x, collision.y)),
+        EditorSelection::Hazard(index) => room.hazards.get(index).map(RectData::center),
+        EditorSelection::Checkpoint(index) => room
+            .checkpoints
+            .get(index)
+            .map(|checkpoint| Vec2::new(checkpoint.x, checkpoint.y)),
+        EditorSelection::SpawnPoint(index) => room
+            .spawn_points
+            .get(index)
+            .map(|spawn| Vec2::new(spawn.x, spawn.y)),
+        EditorSelection::DashCrystal(index) => room
+            .dashcrystals
+            .get(index)
+            .map(|dashcrystal| Vec2::new(dashcrystal.x, dashcrystal.y)),
+        EditorSelection::Exit(index) => room.exits.get(index).map(|exit| Vec2::new(exit.x, exit.y)),
+        EditorSelection::CompletionZone(index) => room.completion_zones.get(index).map(RectData::center),
+    }
+}
+
+fn move_selection_to(
+    map: &mut crate::level::MapFile,
+    room_id: &str,
+    selection: EditorSelection,
+    target_position: Vec2,
+) -> Result<(), String> {
+    let Some(room) = room_mut(map, room_id) else {
+        return Err(format!("Cannot move {selection:?}: active room '{room_id}' does not exist"));
+    };
+
+    match selection {
+        EditorSelection::Collision(index) => {
+            let Some(collision) = room.collision.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            collision.x = target_position.x;
+            collision.y = target_position.y;
+        }
+        EditorSelection::Hazard(index) => {
+            let Some(hazard) = room.hazards.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            hazard.x = target_position.x;
+            hazard.y = target_position.y;
+        }
+        EditorSelection::Checkpoint(index) => {
+            let Some(checkpoint) = room.checkpoints.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            checkpoint.x = target_position.x;
+            checkpoint.y = target_position.y;
+        }
+        EditorSelection::SpawnPoint(index) => {
+            let Some(spawn) = room.spawn_points.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            spawn.x = target_position.x;
+            spawn.y = target_position.y;
+        }
+        EditorSelection::DashCrystal(index) => {
+            let Some(dashcrystal) = room.dashcrystals.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            dashcrystal.x = target_position.x;
+            dashcrystal.y = target_position.y;
+        }
+        EditorSelection::Exit(index) => {
+            let Some(exit) = room.exits.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            exit.x = target_position.x;
+            exit.y = target_position.y;
+        }
+        EditorSelection::CompletionZone(index) => {
+            let Some(completion_zone) = room.completion_zones.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            completion_zone.x = target_position.x;
+            completion_zone.y = target_position.y;
+        }
+    }
+
+    Ok(())
 }
 
 fn handle_selected_exit_shortcuts(
@@ -1037,6 +1212,10 @@ fn draw_point_marker(gizmos: &mut Gizmos, position: Vec2, radius: f32, color: Co
 
 pub fn editor_inactive(editor: Option<Res<EditorState>>) -> bool {
     editor.map(|state| !state.enabled).unwrap_or(true)
+}
+
+pub fn editor_active(editor: Option<Res<EditorState>>) -> bool {
+    editor.map(|state| state.enabled).unwrap_or(false)
 }
 
 fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {

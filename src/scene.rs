@@ -22,10 +22,10 @@ use crate::constants::{
     PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::level::{
-    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, DEFAULT_TILESET_ART_TAG, ExitSide,
-    LoadedMap, RectData, RoomData, TILESET_ART_TAGS, load_map_from_path,
-    normalize_tileset_art_tag,
+    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, DEFAULT_TILESET_ART_TAG, LoadedMap,
+    RectData, RoomData, TILESET_ART_TAGS, load_map_from_path, normalize_tileset_art_tag,
 };
+use crate::editor::editor_active;
 use crate::utils::{color_to_vec4, initial_hair_positions};
 
 const TILE_SIZE: f32 = 8.0;
@@ -124,7 +124,7 @@ impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::InGame), setup)
             .add_systems(OnExit(GameState::InGame), cleanup_gameplay_entities)
-            .add_systems(Update, debug_gizmos.run_if(in_state(GameState::InGame)));
+            .add_systems(Update, debug_gizmos.run_if(in_state(GameState::InGame).and(editor_active)));
     }
 }
 
@@ -535,7 +535,7 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
             },
             LevelEntity,
             Sprite {
-                color: Color::srgb(0.95, 0.85, 0.2),
+                color: Color::NONE,
                 custom_size: Some(Vec2::new(10.0, 18.0)),
                 ..default()
             },
@@ -564,11 +564,6 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
     }
 
     for exit in &room.exits {
-        let tint = match exit.side {
-            ExitSide::Left | ExitSide::Right => Color::srgba(0.3, 0.9, 0.5, 0.25),
-            ExitSide::Top | ExitSide::Bottom => Color::srgba(0.3, 0.6, 1.0, 0.25),
-        };
-
         commands.spawn((
             RoomExitMarker {
                 id: exit.id.clone(),
@@ -578,7 +573,7 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
             },
             LevelEntity,
             Sprite {
-                color: tint,
+                color: Color::NONE,
                 custom_size: Some(Vec2::new(exit.w, exit.h)),
                 ..default()
             },
@@ -590,7 +585,7 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
         LevelEntity,
         Name::new(format!("room_bounds:{}", room.id)),
         Sprite {
-            color: Color::srgba(1.0, 1.0, 1.0, 0.05),
+            color: Color::NONE,
             custom_size: Some(room.bounds.size()),
             ..default()
         },

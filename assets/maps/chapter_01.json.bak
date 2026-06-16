@@ -19,7 +19,7 @@
         },
         {
           "id": "from_room_01",
-          "x": 132.0,
+          "x": 120.0,
           "y": -48.0
         }
       ],
@@ -104,55 +104,68 @@
       ],
       "collision": [
         {
-          "kind": "solid_ground",
-          "x": 208.0,
-          "y": -74.0,
-          "w": 80.0,
-          "h": 24.0,
-          "art_tag": "grass"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 328.0,
-          "y": -48.0,
-          "w": 72.0,
-          "h": 18.0,
-          "art_tag": "grass"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 452.0,
-          "y": -58.0,
-          "w": 88.0,
-          "h": 22.0,
-          "art_tag": "grass"
-        },
-        {
-          "kind": "one_way_platform",
-          "x": 284.0,
-          "y": -8.0,
-          "w": 64.0,
-          "h": 8.0,
-          "art_tag": "dirt"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 384.0,
-          "y": 0.0,
-          "w": 16.0,
-          "h": 96.0,
-          "art_tag": "grass"
-        },
-        {
           "kind": "camera_zone",
           "x": 320.0,
           "y": 0.0,
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 216.0,
+          "y": -72.0,
+          "w": 112.0,
+          "h": 32.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 284.0,
+          "y": -28.0,
+          "w": 24.0,
+          "h": 120.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 336.0,
+          "y": -72.0,
+          "w": 80.0,
+          "h": 32.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 384.0,
+          "y": -28.0,
+          "w": 16.0,
+          "h": 120.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 436.0,
+          "y": -72.0,
+          "w": 88.0,
+          "h": 32.0,
+          "art_tag": "dirt"
         }
       ],
-      "hazards": [],
+      "hazards": [
+        {
+          "x": 264.0,
+          "y": -52.0,
+          "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 384.0,
+          "y": 36.0,
+          "w": 16.0,
+          "h": 8.0
+        }
+      ],
       "checkpoints": [
         {
           "id": "room_01_cp",
@@ -160,13 +173,7 @@
           "y": -46.0
         }
       ],
-      "dashcrystals": [
-        {
-          "id": "room_01_dash",
-          "x": 336.0,
-          "y": -16.0
-        }
-      ],
+      "dashcrystals": [],
       "exits": [
         {
           "id": "room_01_to_00",
@@ -206,7 +213,7 @@
         {
           "id": "left_entry",
           "x": 504.0,
-          "y": -36.0
+          "y": -48.0
         },
         {
           "id": "from_room_03",
@@ -216,82 +223,110 @@
       ],
       "collision": [
         {
-          "kind": "solid_ground",
-          "x": 524.0,
-          "y": -64.0,
-          "w": 92.0,
-          "h": 22.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 646.0,
-          "y": -18.0,
-          "w": 72.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 758.0,
-          "y": 28.0,
-          "w": 76.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 588.0,
-          "y": 6.0,
-          "w": 16.0,
-          "h": 112.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 708.0,
-          "y": 42.0,
-          "w": 16.0,
-          "h": 92.0,
-          "art_tag": "snow"
-        },
-        {
           "kind": "camera_zone",
           "x": 640.0,
           "y": 0.0,
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 640.0,
+          "y": -84.0,
+          "w": 336.0,
+          "h": 8.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 644.0,
+          "y": -72.0,
+          "w": 328.0,
+          "h": 16.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 728.0,
+          "y": 88.0,
+          "w": 88.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 544.0,
+          "y": 88.0,
+          "w": 128.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 784.0,
+          "y": 88.0,
+          "w": 32.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 656.0,
+          "y": 44.0,
+          "w": 96.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 728.0,
+          "y": 24.0,
+          "w": 32.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 728.0,
+          "y": -32.0,
+          "w": 48.0,
+          "h": 16.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 784.0,
+          "y": 4.0,
+          "w": 32.0,
+          "h": 8.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 784.0,
+          "y": -4.0,
+          "w": 32.0,
+          "h": 8.0,
+          "art_tag": "dirt"
         }
       ],
       "hazards": [
         {
-          "x": 600.0,
-          "y": -56.0,
-          "w": 48.0,
-          "h": 10.0
-        },
-        {
-          "x": 706.0,
-          "y": 17.0,
-          "w": 10.0,
-          "h": 42.0
+          "x": 608.0,
+          "y": -60.0,
+          "w": 64.0,
+          "h": 8.0
         }
       ],
       "checkpoints": [
         {
           "id": "room_02_cp",
-          "x": 526.0,
-          "y": -36.0
+          "x": 528.0,
+          "y": -48.0
         }
       ],
-      "dashcrystals": [
-        {
-          "id": "room_02_dash",
-          "x": 676.0,
-          "y": 10.0
-        }
-      ],
+      "dashcrystals": [],
       "exits": [
         {
           "id": "room_02_to_01",
@@ -330,8 +365,8 @@
       "spawn_points": [
         {
           "id": "bottom_entry",
-          "x": 648.0,
-          "y": 108.0
+          "x": 640.0,
+          "y": 120.0
         },
         {
           "id": "from_room_04",
@@ -341,98 +376,63 @@
       ],
       "collision": [
         {
-          "kind": "solid_ground",
-          "x": 646.0,
-          "y": 92.0,
-          "w": 84.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 572.0,
-          "y": 150.0,
-          "w": 16.0,
-          "h": 104.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 708.0,
-          "y": 164.0,
-          "w": 16.0,
-          "h": 112.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "one_way_platform",
-          "x": 642.0,
-          "y": 160.0,
-          "w": 72.0,
-          "h": 8.0,
-          "art_tag": "grass"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 780.0,
-          "y": 146.0,
-          "w": 72.0,
-          "h": 18.0,
-          "art_tag": "grass"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 780.0,
-          "y": 206.0,
-          "w": 88.0,
-          "h": 18.0,
-          "art_tag": "grass"
-        },
-        {
           "kind": "camera_zone",
           "x": 640.0,
           "y": 180.0,
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
-        }
-      ],
-      "hazards": [
-        {
-          "x": 640.0,
-          "y": 84.0,
-          "w": 52.0,
-          "h": 10.0
         },
         {
-          "x": 716.0,
-          "y": 200.0,
-          "w": 10.0,
-          "h": 48.0
+          "kind": "solid_ground",
+          "x": 556.0,
+          "y": 96.0,
+          "w": 88.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 656.0,
+          "y": 96.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 484.0,
+          "y": 184.0,
+          "w": 8.0,
+          "h": 192.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 500.0,
+          "y": 96.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "snow"
         }
       ],
+      "hazards": [],
       "checkpoints": [
         {
           "id": "room_03_cp",
-          "x": 648.0,
-          "y": 112.0
+          "x": 640.0,
+          "y": 120.0
         }
       ],
-      "dashcrystals": [
-        {
-          "id": "room_03_dash",
-          "x": 642.0,
-          "y": 190.0
-        }
-      ],
+      "dashcrystals": [],
       "exits": [
         {
           "id": "room_03_to_02",
           "side": "bottom",
           "target_room": "room_02",
           "target_spawn": "from_room_03",
-          "x": 646.0,
-          "y": 94.0,
+          "x": 624.0,
+          "y": 88.0,
           "w": 76.0,
           "h": 12.0,
           "preserve_momentum": false
