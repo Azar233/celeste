@@ -13,13 +13,62 @@ use crate::constants::{
     PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
 };
 use crate::level::{ActiveRoom, LoadedMap, RectData};
-use crate::scene::{LevelArt, spawn_room_geometry};
+use crate::scene::{LevelArt, is_chapter_02_map_path, spawn_room_geometry};
 use crate::utils::{check_collision, initial_hair_positions};
 
 const ROOM_TRANSITION_COOLDOWN_SECS: f32 = 0.18;
 const DEATH_ANIMATION_FRAMES: usize = 13;
 const DEATH_ANIMATION_FRAME_INTERVAL: f32 = 0.05;
 const DEATH_WIPE_DURATION_SECS: f32 = 0.30;
+const FORSAKEN_CITY_COMPLETION_ENDING_LAYERS: [&str; 14] = [
+    "figs/ending/ForsakenCity/01.png",
+    "figs/ending/ForsakenCity/02.png",
+    "figs/ending/ForsakenCity/03.png",
+    "figs/ending/ForsakenCity/04.png",
+    "figs/ending/ForsakenCity/05.png",
+    "figs/ending/ForsakenCity/06.png",
+    "figs/ending/ForsakenCity/07.png",
+    "figs/ending/ForsakenCity/08a.png",
+    "figs/ending/ForsakenCity/08b.png",
+    "figs/ending/ForsakenCity/09.png",
+    "figs/ending/ForsakenCity/10.png",
+    "figs/ending/ForsakenCity/11.png",
+    "figs/ending/ForsakenCity/snow-back.png",
+    "figs/ending/ForsakenCity/snow-front.png",
+];
+const SUMMIT_END_COMPLETION_ENDING_LAYERS: [&str; 31] = [
+    "figs/ending/SummitEnd/00.png",
+    "figs/ending/SummitEnd/01a.png",
+    "figs/ending/SummitEnd/01b.png",
+    "figs/ending/SummitEnd/01c.png",
+    "figs/ending/SummitEnd/02a.png",
+    "figs/ending/SummitEnd/02b.png",
+    "figs/ending/SummitEnd/02c.png",
+    "figs/ending/SummitEnd/03a.png",
+    "figs/ending/SummitEnd/03b.png",
+    "figs/ending/SummitEnd/03c.png",
+    "figs/ending/SummitEnd/04.png",
+    "figs/ending/SummitEnd/05.png",
+    "figs/ending/SummitEnd/06.png",
+    "figs/ending/SummitEnd/07a.png",
+    "figs/ending/SummitEnd/07b.png",
+    "figs/ending/SummitEnd/07c.png",
+    "figs/ending/SummitEnd/07d.png",
+    "figs/ending/SummitEnd/08.png",
+    "figs/ending/SummitEnd/09a.png",
+    "figs/ending/SummitEnd/09b.png",
+    "figs/ending/SummitEnd/09c.png",
+    "figs/ending/SummitEnd/09d.png",
+    "figs/ending/SummitEnd/09e.png",
+    "figs/ending/SummitEnd/09f.png",
+    "figs/ending/SummitEnd/09g.png",
+    "figs/ending/SummitEnd/09h.png",
+    "figs/ending/SummitEnd/10.png",
+    "figs/ending/SummitEnd/11a.png",
+    "figs/ending/SummitEnd/11b.png",
+    "figs/ending/SummitEnd/11c.png",
+    "figs/ending/SummitEnd/12.png",
+];
 
 #[derive(Resource, Default)]
 pub struct RoomTransitionCooldown {
@@ -583,6 +632,8 @@ pub fn update_dash_crystals(
 
 pub fn handle_completion_zones(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    loaded_map: Res<LoadedMap>,
     mut completion_state: ResMut<CompletionState>,
     player_query: Query<(&Transform, &ColliderSize), With<Player>>,
     completion_zones: Query<(&Transform, &Sprite), (With<CompletionZone>, Without<Player>)>,
@@ -607,7 +658,7 @@ pub fn handle_completion_zones(
             zone_size,
         ) {
             completion_state.active = true;
-            spawn_completion_overlay(&mut commands);
+            spawn_completion_overlay(&mut commands, &asset_server, &loaded_map);
             break;
         }
     }
@@ -627,7 +678,11 @@ pub fn completion_inactive(completion_state: Res<CompletionState>) -> bool {
     !completion_state.active
 }
 
-fn spawn_completion_overlay(commands: &mut Commands) {
+fn spawn_completion_overlay(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    loaded_map: &LoadedMap,
+) {
     commands
         .spawn((
             CompletionOverlay,
@@ -635,36 +690,96 @@ fn spawn_completion_overlay(commands: &mut Commands) {
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                row_gap: Val::Px(18.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.72)),
             GlobalZIndex(200),
         ))
         .with_children(|parent| {
-            parent.spawn((
+            spawn_completion_ending_layers(parent, asset_server, loaded_map);
+            spawn_completion_text(parent);
+        });
+}
+
+fn spawn_completion_ending_layers(
+    parent: &mut ChildBuilder,
+    asset_server: &AssetServer,
+    loaded_map: &LoadedMap,
+) {
+    parent
+        .spawn((
+            CompletionOverlay,
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                overflow: Overflow::clip(),
+                ..default()
+            },
+            ZIndex(-1),
+        ))
+        .with_children(|layers| {
+            let ending_layers = if is_chapter_02_map_path(&loaded_map.path) {
+                SUMMIT_END_COMPLETION_ENDING_LAYERS.as_slice()
+            } else {
+                FORSAKEN_CITY_COMPLETION_ENDING_LAYERS.as_slice()
+            };
+
+            for path in ending_layers {
+                layers.spawn((
+                    CompletionOverlay,
+                    ImageNode::new(asset_server.load(*path)),
+                    Node {
+                        position_type: PositionType::Absolute,
+                        width: Val::Percent(100.0),
+                        max_width: Val::Percent(100.0),
+                        max_height: Val::Percent(100.0),
+                        ..default()
+                    },
+                ));
+            }
+        });
+}
+
+fn spawn_completion_text(parent: &mut ChildBuilder) {
+    parent
+        .spawn((
+            CompletionOverlay,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: Val::Px(18.0),
+                ..default()
+            },
+            ZIndex(1),
+        ))
+        .with_children(|text| {
+            text.spawn((
                 CompletionOverlay,
-                GameplayEntity,
+                Text::new("Press Space to return to Main Menu"),
+                TextFont {
+                    font_size: 28.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+            ));
+
+            text.spawn((
+                CompletionOverlay,
                 Text::new("Complete"),
                 TextFont {
                     font_size: 56.0,
                     ..default()
                 },
                 TextColor(Color::srgb(1.0, 0.95, 0.45)),
-            ));
-
-            parent.spawn((
-                CompletionOverlay,
-                GameplayEntity,
-                Text::new("Press Space to return to Main Menu"),
-                TextFont {
-                    font_size: 24.0,
-                    ..default()
-                },
-                TextColor(Color::WHITE),
             ));
         });
 }

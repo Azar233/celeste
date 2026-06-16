@@ -14,6 +14,9 @@ struct MainMenuEntity;
 struct MainMenuRoot;
 
 #[derive(Component)]
+struct MainMenuPageContent;
+
+#[derive(Component)]
 struct MainMenuAction(MenuAction);
 
 #[derive(Component)]
@@ -55,7 +58,11 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn spawn_main_menu(mut commands: Commands, mut page: ResMut<MainMenuPage>) {
+fn spawn_main_menu(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut page: ResMut<MainMenuPage>,
+) {
     *page = MainMenuPage::Root;
 
     let camera = commands
@@ -78,13 +85,70 @@ fn spawn_main_menu(mut commands: Commands, mut page: ResMut<MainMenuPage>) {
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.06, 0.07, 0.12)),
+        ))
+        .with_children(|parent| {
+            spawn_menu_background(parent, &asset_server);
+            spawn_menu_heading_pattern(parent, &asset_server);
+            spawn_menu_page_content(parent);
+        });
+}
+
+fn spawn_menu_background(parent: &mut ChildBuilder, asset_server: &AssetServer) {
+    parent.spawn((
+        MainMenuEntity,
+        ImageNode::new(asset_server.load("figs/heading/0.png")),
+        Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            ..default()
+        },
+        ZIndex(-2),
+    ));
+}
+
+fn spawn_menu_heading_pattern(parent: &mut ChildBuilder, asset_server: &AssetServer) {
+    parent
+        .spawn((
+            MainMenuEntity,
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            ZIndex(-1),
+        ))
+        .with_child((
+            MainMenuEntity,
+            ImageNode::new(asset_server.load("figs/heading/1.png")),
+            Node {
+                width: Val::Percent(115.0),
+                ..default()
+            },
+        ));
+}
+
+fn spawn_menu_page_content(parent: &mut ChildBuilder) {
+    parent
+        .spawn((
+            MainMenuEntity,
+            MainMenuPageContent,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 row_gap: Val::Px(16.0),
                 ..default()
             },
-            BackgroundColor(Color::srgb(0.06, 0.07, 0.12)),
+            ZIndex(0),
         ))
         .with_children(spawn_root_page);
 }
@@ -196,7 +260,7 @@ fn spawn_chapter_button(parent: &mut ChildBuilder, chapter: &ChapterEntry) {
 
 fn handle_main_menu_buttons(
     mut commands: Commands,
-    root_query: Query<(Entity, Option<&Children>), With<MainMenuRoot>>,
+    page_content_query: Query<(Entity, Option<&Children>), With<MainMenuPageContent>>,
     buttons: Query<
         (Entity, &Interaction, Option<&MainMenuAction>, Option<&ChapterButton>),
         (Changed<Interaction>, With<Button>),
@@ -236,11 +300,11 @@ fn handle_main_menu_buttons(
                         }
                         MenuAction::SelectChapter => {
                             *page = MainMenuPage::ChapterSelect;
-                            rebuild_main_menu_page(&mut commands, &root_query, MainMenuPage::ChapterSelect);
+                            rebuild_main_menu_page(&mut commands, &page_content_query, MainMenuPage::ChapterSelect);
                         }
                         MenuAction::ReturnToRoot => {
                             *page = MainMenuPage::Root;
-                            rebuild_main_menu_page(&mut commands, &root_query, MainMenuPage::Root);
+                            rebuild_main_menu_page(&mut commands, &page_content_query, MainMenuPage::Root);
                         }
                         MenuAction::ExitGame => {
                             app_exit.send(AppExit::Success);
@@ -259,10 +323,10 @@ fn handle_main_menu_buttons(
 
 fn rebuild_main_menu_page(
     commands: &mut Commands,
-    root_query: &Query<(Entity, Option<&Children>), With<MainMenuRoot>>,
+    page_content_query: &Query<(Entity, Option<&Children>), With<MainMenuPageContent>>,
     page: MainMenuPage,
 ) {
-    let Ok((root, children)) = root_query.get_single() else {
+    let Ok((page_content, children)) = page_content_query.get_single() else {
         return;
     };
 
@@ -272,7 +336,7 @@ fn rebuild_main_menu_page(
         }
     }
 
-    commands.entity(root).with_children(|parent| match page {
+    commands.entity(page_content).with_children(|parent| match page {
         MainMenuPage::Root => spawn_root_page(parent),
         MainMenuPage::ChapterSelect => {
             let chapters = scan_chapters();

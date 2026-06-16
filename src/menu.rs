@@ -318,10 +318,11 @@ fn handle_button_interaction(
                 }
                 if let Some(map_item) = map_item {
                     let map_name = map_item.0.clone();
+                    let mut level_art = level_art.clone();
                     switch_map(
                         &mut commands,
                         &map_name,
-                        &level_art,
+                        &mut level_art,
                         &mut active_room,
                         &level_entities,
                         &mut player_query,
@@ -526,7 +527,7 @@ fn reload_current_room(
 fn switch_map(
     commands: &mut Commands,
     map_name: &str,
-    level_art: &Res<LevelArt>,
+    level_art: &mut LevelArt,
     active_room: &mut ResMut<ActiveRoom>,
     level_entities: &Query<Entity, With<LevelEntity>>,
     player_query: &mut Query<
@@ -579,6 +580,7 @@ fn switch_map(
     }
 
     // Spawn new room
+    level_art.set_current_map_path(path.clone());
     spawn_room_geometry(commands, room, level_art);
 
     // Reset player
@@ -632,6 +634,7 @@ fn switch_map(
         data: new_map,
         path: path.into(),
     });
+    commands.insert_resource(level_art.clone());
 
     // Move camera and weather to spawn point
     for mut camera_transform in camera_query {

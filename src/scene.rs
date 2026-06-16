@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::Path;
 
 use bevy::math::URect;
 use bevy::prelude::*;
@@ -28,6 +29,7 @@ use crate::level::{
 use crate::utils::{color_to_vec4, initial_hair_positions};
 
 const TILE_SIZE: f32 = 8.0;
+const CHAPTER_02_MAP_PATH: &str = "assets/maps/chapter_02.json";
 const GROUND_TILE_COLUMNS: usize = 6;
 const GROUND_TILE_ROWS: usize = 15;
 const DANGER_UPDOWN_SIZE: Vec2 = Vec2::new(10.0, 9.0);
@@ -96,7 +98,9 @@ pub struct TilesetArt {
 
 #[derive(Resource, Clone)]
 pub struct LevelArt {
-    pub backgrounds: Vec<Handle<Image>>,
+    pub default_backgrounds: Vec<Handle<Image>>,
+    pub chapter2_backgrounds: Vec<Handle<Image>>,
+    pub current_map_path: std::path::PathBuf,
     pub tilesets: HashMap<String, TilesetArt>,
     pub danger_up: Handle<Image>,
     pub danger_down: Handle<Image>,
@@ -187,12 +191,24 @@ pub fn setup(
         );
     }
 
+    let map_path = pending_map_path
+        .path
+        .take()
+        .unwrap_or_else(|| DEFAULT_MAP_PATH.into());
     let level_art = LevelArt {
-        backgrounds: vec![
+        default_backgrounds: vec![
             asset_server.load("figs/bgs/01/bg0.png"),
             asset_server.load("figs/bgs/01/bg1.png"),
             asset_server.load("figs/bgs/01/bg2.png"),
         ],
+        chapter2_backgrounds: vec![
+            asset_server.load("figs/bgs/07/07/bg00.png"),
+            asset_server.load("figs/bgs/07/07/bg01.png"),
+            asset_server.load("figs/bgs/07/07/bg02.png"),
+            asset_server.load("figs/bgs/07/07/bg03.png"),
+            asset_server.load("figs/bgs/07/07/bg04.png"),
+        ],
+        current_map_path: map_path.clone(),
         tilesets,
         danger_up: asset_server.load("figs/danger/outline_up00.png"),
         danger_down: asset_server.load("figs/danger/outline_down00.png"),
@@ -208,10 +224,6 @@ pub fn setup(
         dash_crystal_vanished: asset_server.load("figs/DashCystal/vanished.png"),
     };
 
-    let map_path = pending_map_path
-        .path
-        .take()
-        .unwrap_or_else(|| DEFAULT_MAP_PATH.into());
     let map = load_map_from_path(&map_path)
         .unwrap_or_else(|error| panic!("unable to load initial map data: {error}"));
     let room = map
@@ -587,7 +599,7 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
 }
 
 fn spawn_room_background(commands: &mut Commands, room: &RoomData, level_art: &LevelArt) {
-    for (index, background) in level_art.backgrounds.iter().enumerate() {
+    for (index, background) in level_art.backgrounds().iter().enumerate() {
         commands.spawn((
             LevelEntity,
             Name::new(format!("room_background:{}:{}", room.id, index)),
@@ -669,6 +681,18 @@ fn spawn_ground_tiles(
 }
 
 impl LevelArt {
+    pub fn set_current_map_path(&mut self, path: impl Into<std::path::PathBuf>) {
+        self.current_map_path = path.into();
+    }
+
+    fn backgrounds(&self) -> &[Handle<Image>] {
+        if is_chapter_02_map_path(&self.current_map_path) {
+            &self.chapter2_backgrounds
+        } else {
+            &self.default_backgrounds
+        }
+    }
+
     fn tileset_for_tag(&self, art_tag: Option<&str>) -> &TilesetArt {
         art_tag
             .and_then(normalize_tileset_art_tag)
@@ -676,6 +700,13 @@ impl LevelArt {
             .or_else(|| self.tilesets.get(DEFAULT_TILESET_ART_TAG))
             .expect("default dirt tileset should be loaded")
     }
+}
+
+pub fn is_chapter_02_map_path(path: impl AsRef<Path>) -> bool {
+    path.as_ref()
+        .to_string_lossy()
+        .replace('\\', "/")
+        .ends_with(CHAPTER_02_MAP_PATH)
 }
 
 fn tile_exposure_mask(gx: i32, gy: i32, solid_cells: &HashSet<(i32, i32)>) -> u8 {

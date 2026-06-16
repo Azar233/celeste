@@ -184,10 +184,16 @@ fn editor_keyboard_shortcuts(
 
     if keyboard.just_pressed(KeyCode::Delete) {
         if let Some(selection) = editor.selected.take() {
-            if delete_selection(&mut loaded_map.data, &active_room.room_id, selection) {
-                editor.dirty = true;
-                editor.last_status = format!("Deleted {selection:?}");
-                info!("{}", editor.last_status);
+            match delete_selection(&mut loaded_map.data, &active_room.room_id, selection) {
+                Ok(()) => {
+                    editor.dirty = true;
+                    editor.last_status = format!("Deleted {selection:?}");
+                    info!("{}", editor.last_status);
+                }
+                Err(error) => {
+                    editor.last_status = error;
+                    warn!("{}", editor.last_status);
+                }
             }
         }
     }
@@ -781,42 +787,80 @@ fn delete_selection(
     map: &mut crate::level::MapFile,
     room_id: &str,
     selection: EditorSelection,
-) -> bool {
+) -> Result<(), String> {
+    if matches!(selection, EditorSelection::SpawnPoint(_)) {
+        return delete_spawn_point_selection(map, room_id, selection);
+    }
+
     let Some(room) = room_mut(map, room_id) else {
-        return false;
+        return Err(format!("Cannot delete {selection:?}: active room '{room_id}' does not exist"));
     };
 
     match selection {
         EditorSelection::Collision(index) if index < room.collision.len() => {
             room.collision.remove(index);
-            true
+            Ok(())
         }
         EditorSelection::Hazard(index) if index < room.hazards.len() => {
             room.hazards.remove(index);
-            true
+            Ok(())
         }
         EditorSelection::Checkpoint(index) if index < room.checkpoints.len() => {
             room.checkpoints.remove(index);
-            true
-        }
-        EditorSelection::SpawnPoint(index) if index < room.spawn_points.len() => {
-            room.spawn_points.remove(index);
-            true
+            Ok(())
         }
         EditorSelection::DashCrystal(index) if index < room.dashcrystals.len() => {
             room.dashcrystals.remove(index);
-            true
+            Ok(())
         }
         EditorSelection::Exit(index) if index < room.exits.len() => {
             room.exits.remove(index);
-            true
+            Ok(())
         }
         EditorSelection::CompletionZone(index) if index < room.completion_zones.len() => {
             room.completion_zones.remove(index);
-            true
+            Ok(())
         }
-        _ => false,
+        _ => Err(format!("Cannot delete {selection:?}: selected object no longer exists")),
     }
+}
+
+fn delete_spawn_point_selection(
+    map: &mut crate::level::MapFile,
+    room_id: &str,
+    selection: EditorSelection,
+) -> Result<(), String> {
+    let EditorSelection::SpawnPoint(index) = selection else {
+        return Err(format!("Cannot delete {selection:?}: expected a spawn point selection"));
+    };
+
+    let Some(room_index) = map.rooms.iter().position(|room| room.id == room_id) else {
+        return Err(format!("Cannot delete SpawnPoint({index}): active room '{room_id}' does not exist"));
+    };
+    let Some(spawn) = map.rooms[room_index].spawn_points.get(index) else {
+        return Err(format!("Cannot delete SpawnPoint({index}): selected spawn point no longer exists"));
+    };
+    let spawn_id = spawn.id.clone();
+
+    if map.rooms[room_index].default_spawn == spawn_id {
+        return Err(format!(
+            "Cannot delete spawn point '{spawn_id}' in room '{room_id}': it is this room's default_spawn. Select/create another spawn and update the map before deleting it."
+        ));
+    }
+
+    if let Some((source_room, exit_id)) = map.rooms.iter().find_map(|room| {
+        room.exits
+            .iter()
+            .find(|exit| exit.target_room == room_id && exit.target_spawn == spawn_id)
+            .map(|exit| (room.id.clone(), exit.id.clone()))
+    }) {
+        return Err(format!(
+            "Cannot delete spawn point '{spawn_id}' in room '{room_id}': exit '{exit_id}' in room '{source_room}' targets it. Retarget or delete that exit first."
+        ));
+    }
+
+    map.rooms[room_index].spawn_points.remove(index);
+    Ok(())
 }
 
 fn pick_object(
@@ -1016,6 +1060,16 @@ fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {
         if room.bounds.w <= 0.0 || room.bounds.h <= 0.0 {
             return Err(format!("room '{}' has invalid bounds", room.id));
         }
+        if room
+            .spawn_points
+            .iter()
+            .all(|spawn| spawn.id != room.default_spawn)
+        {
+            return Err(format!(
+                "room '{}' default_spawn '{}' does not match any spawn point; create that spawn point or choose an existing spawn before saving",
+                room.id, room.default_spawn
+            ));
+        }
         for collision in &room.collision {
             if collision.w <= 0.0 || collision.h <= 0.0 {
                 return Err(format!("room '{}' has invalid collision rectangle", room.id));
@@ -1057,7 +1111,7 @@ fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {
                 .all(|spawn| spawn.id != exit.target_spawn)
             {
                 return Err(format!(
-                    "room '{}' exit '{}' targets missing spawn '{}' in room '{}'",
+                    "room '{}' exit '{}' targets missing spawn '{}' in room '{}'; create that spawn point or retarget/delete the exit before saving",
                     room.id, exit.id, exit.target_spawn, exit.target_room
                 ));
             }
