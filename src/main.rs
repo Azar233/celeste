@@ -1,4 +1,5 @@
 mod app_state;
+mod audio;
 mod components;
 mod constants;
 mod editor;
@@ -15,6 +16,7 @@ use bevy::window::{PresentMode, WindowPlugin};
 use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 
 use app_state::{GameState, PendingMapPath};
+use audio::GameAudioPlugin;
 use components::{HairMaterial, WeatherMaterial};
 use editor::EditorPlugin;
 use main_menu::MainMenuPlugin;
@@ -47,6 +49,7 @@ fn main() {
         .init_state::<GameState>()
         .init_resource::<PendingMapPath>()
         .add_plugins((
+            GameAudioPlugin,
             MainMenuPlugin,
             ScenePlugin,
             GameplayPlugin,

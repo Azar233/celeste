@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::app_state::GameState;
+use crate::audio::play_death_sfx;
 use crate::components::{
     AnimationState, AnimationTimer, CheckpointMarker, ClimbStamina, ClimbTopOutState,
     ColliderSize, CompletionOverlay, CompletionZone, CornerBoostState, Crouching, DashCrystal,
@@ -111,12 +112,15 @@ impl DeathSequence {
         self.phase != DeathSequencePhase::Inactive
     }
 
-    pub fn start(&mut self) {
-        if !self.active() {
-            self.phase = DeathSequencePhase::PlayerDeathAnimation;
-            self.timer = 0.0;
-            self.frame_index = 0;
+    pub fn start(&mut self) -> bool {
+        if self.active() {
+            return false;
         }
+
+        self.phase = DeathSequencePhase::PlayerDeathAnimation;
+        self.timer = 0.0;
+        self.frame_index = 0;
+        true
     }
 }
 
@@ -789,6 +793,8 @@ pub fn reset_completion_state(mut completion_state: ResMut<CompletionState>) {
 }
 
 pub fn handle_hazard_respawn(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     hazards: Query<(&Transform, &Sprite), (With<Hazard>, Without<Player>)>,
     mut death_sequence: ResMut<DeathSequence>,
     player_query: Query<(&Transform, &ColliderSize), With<Player>>,
@@ -813,7 +819,9 @@ pub fn handle_hazard_respawn(
             hazard_transform.translation,
             hazard_size,
         ) {
-            death_sequence.start();
+            if death_sequence.start() {
+                play_death_sfx(&mut commands, &asset_server);
+            }
             break;
         }
     }

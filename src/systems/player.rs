@@ -22,6 +22,7 @@ use crate::constants::{
     WALL_CLIMB_SPEED, WALL_KICK_FORCE, WALL_KICK_LOCK, WALL_NEUTRAL_FORCE, WALL_NEUTRAL_LOCK,
     WALL_SLIDE_SPEED,
 };
+use crate::audio::{play_dash_sfx, play_death_sfx};
 use crate::level::ActiveRoom;
 use crate::systems::level::DeathSequence;
 use crate::utils::{can_use_collider, check_collision, move_towards};
@@ -581,6 +582,8 @@ pub fn update_crouch_state(
 }
 
 pub fn player_input(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut freeze_frames: ResMut<FreezeFrameState>,
     mut query: Query<
         (
@@ -639,6 +642,7 @@ pub fn player_input(
         }
 
         if actions.dash_pressed && dash_state.dashes_remaining > 0 {
+            play_dash_sfx(&mut commands, &asset_server);
             dash_state.is_dashing = true;
             dash_state.timer = DASH_DURATION;
             dash_state.dashes_remaining -= 1;
@@ -736,6 +740,8 @@ pub fn player_input(
 }
 
 pub fn trigger_fall_death(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     active_room: Res<ActiveRoom>,
     mut death_sequence: ResMut<DeathSequence>,
     player_query: Query<&Transform, With<Player>>,
@@ -749,8 +755,8 @@ pub fn trigger_fall_death(
     };
 
     let _current_respawn = active_room.respawn_point;
-    if player_transform.translation.y < DEATH_THRESHOLD {
-        death_sequence.start();
+    if player_transform.translation.y < DEATH_THRESHOLD && death_sequence.start() {
+        play_death_sfx(&mut commands, &asset_server);
     }
 }
 
