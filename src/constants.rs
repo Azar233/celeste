@@ -22,6 +22,13 @@ pub const AIR_TURN_FRICTION: f32 = 1000.0;
 
 pub const WALL_SLIDE_SPEED: f32 = 40.0;
 pub const WALL_CLIMB_SPEED: f32 = 80.0;
+pub const CLIMB_STAMINA_MAX: f32 = 130.0;
+pub const CLIMB_STAMINA_MIN_TO_CLIMB: f32 = 20.0;
+pub const CLIMB_STAMINA_HOLD_DRAIN_PER_SEC: f32 = 5.0;
+pub const CLIMB_STAMINA_UP_DRAIN_PER_SEC: f32 = 15.0;
+pub const CLIMB_STAMINA_JUMP_COST: f32 = 35.0;
+pub const CLIMB_STAMINA_LOW_FLASH_INTERVAL: f32 = 0.3;
+pub const CLIMB_STAMINA_LOW_TINT: Color = Color::srgb(1.0, 0.55, 0.55);
 pub const WALL_KICK_FORCE: Vec2 = Vec2::new(140.0, 290.0);
 pub const WALL_KICK_LOCK: f32 = 0.20;
 pub const WALL_NEUTRAL_FORCE: Vec2 = Vec2::new(80.0, 300.0);
@@ -31,6 +38,10 @@ pub const JUMP_AWAY_FROM_WALL: f32 = 140.0;
 pub const WALL_CLIMB_LOCK: f32 = 0.12;
 pub const UPWARD_CORNER_CORRECTION: i32 = 4;
 pub const DASH_CORNER_CORRECTION: i32 = 4;
+pub const CORNER_BOOST_WINDOW: f32 = 0.4;
+pub const CORNER_BOOST_BONUS_SPEED: f32 = 40.0;
+pub const CORNER_BOOST_MIN_BLOCKED_SPEED: f32 = 20.0;
+pub const CORNER_BOOST_TOP_TOLERANCE: f32 = 1.0;
 
 pub const DASH_SPEED: f32 = 300.0;
 pub const DASH_DURATION: f32 = 0.15;

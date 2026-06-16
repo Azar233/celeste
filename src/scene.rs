@@ -1,38 +1,103 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
+use bevy::math::URect;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 use bevy::sprite::Anchor;
 
+use crate::app_state::{GameState, PendingMapPath};
 use crate::components::{
-    AnimationState, AnimationTimer, CheckpointMarker, ClimbTopOutState, ColliderSize, Crouching,
-    DashCrystal, DashSlideState, DashState, DashTrailEmitter, Facing, Ground, Grounded, Hair,
-    HairBangs, HairMaterial, HairSegment, Hazard, JumpState, LevelEntity, MovementInput, Player,
-    PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, RoomExitMarker, Velocity,
-    WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
+    AnimationState, AnimationTimer, CheckpointMarker, ClimbStamina, ClimbTopOutState, ColliderSize,
+    CompletionZone, CornerBoostState, Crouching, DashCrystal, DashSlideState, DashState, DashTrailEmitter, Facing,
+    GameplayEntity, Ground, Grounded, Hair, HairBangs, HairMaterial, HairSegment, Hazard, JumpState,
+    LevelEntity, MovementInput, Player, PlayerActionInput, PlayerAnimations, PlayerState,
+    PlayerStateMachine, RoomExitMarker, Velocity, WallContact, WallJumpTimer, WeatherMaterial,
+    WeatherOverlay,
 };
 use crate::constants::{
-    BACKGROUND_Z, BANGS_Z, DASH_CRYSTAL_SIZE, DASH_CRYSTAL_Z, HAIR_OUTLINE_WIDTH,
-    HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z, PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
-    WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
+    BACKGROUND_Z, BANGS_Z, CLIMB_STAMINA_MAX, DASH_CRYSTAL_SIZE, DASH_CRYSTAL_Z,
+    HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
+    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::level::{
-    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, ExitSide, LoadedMap, RectData,
-    RoomData, load_map_from_path,
+    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, DEFAULT_TILESET_ART_TAG, ExitSide,
+    LoadedMap, RectData, RoomData, TILESET_ART_TAGS, load_map_from_path,
+    normalize_tileset_art_tag,
 };
 use crate::utils::{color_to_vec4, initial_hair_positions};
 
 const TILE_SIZE: f32 = 8.0;
-const DIRT_TILE_COLUMNS: usize = 6;
-const DIRT_TILE_ROWS: usize = 15;
+const GROUND_TILE_COLUMNS: usize = 6;
+const GROUND_TILE_ROWS: usize = 15;
 const DANGER_UPDOWN_SIZE: Vec2 = Vec2::new(10.0, 9.0);
 const DANGER_LEFTRIGHT_SIZE: Vec2 = Vec2::new(9.0, 10.0);
+const DEATH_SHEET_SIZE: UVec2 = UVec2::new(224, 26);
+const DEATH_FRAME_RECTS: [URect; 13] = [
+    URect {
+        min: UVec2::new(1, 5),
+        max: UVec2::new(20, 26),
+    },
+    URect {
+        min: UVec2::new(22, 7),
+        max: UVec2::new(39, 25),
+    },
+    URect {
+        min: UVec2::new(46, 9),
+        max: UVec2::new(56, 20),
+    },
+    URect {
+        min: UVec2::new(67, 9),
+        max: UVec2::new(76, 19),
+    },
+    URect {
+        min: UVec2::new(83, 4),
+        max: UVec2::new(100, 23),
+    },
+    URect {
+        min: UVec2::new(103, 4),
+        max: UVec2::new(110, 23),
+    },
+    URect {
+        min: UVec2::new(115, 4),
+        max: UVec2::new(122, 23),
+    },
+    URect {
+        min: UVec2::new(123, 3),
+        max: UVec2::new(131, 21),
+    },
+    URect {
+        min: UVec2::new(134, 7),
+        max: UVec2::new(142, 25),
+    },
+    URect {
+        min: UVec2::new(144, 2),
+        max: UVec2::new(162, 26),
+    },
+    URect {
+        min: UVec2::new(164, 2),
+        max: UVec2::new(183, 26),
+    },
+    URect {
+        min: UVec2::new(184, 3),
+        max: UVec2::new(203, 25),
+    },
+    URect {
+        min: UVec2::new(207, 5),
+        max: UVec2::new(221, 22),
+    },
+];
+
+#[derive(Clone)]
+pub struct TilesetArt {
+    pub texture: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
 
 #[derive(Resource, Clone)]
 pub struct LevelArt {
-    pub background: Handle<Image>,
-    pub dirt_texture: Handle<Image>,
-    pub dirt_layout: Handle<TextureAtlasLayout>,
+    pub backgrounds: Vec<Handle<Image>>,
+    pub tilesets: HashMap<String, TilesetArt>,
     pub danger_up: Handle<Image>,
     pub danger_down: Handle<Image>,
     pub danger_left: Handle<Image>,
@@ -53,8 +118,9 @@ pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
-            .add_systems(Update, debug_gizmos);
+        app.add_systems(OnEnter(GameState::InGame), setup)
+            .add_systems(OnExit(GameState::InGame), cleanup_gameplay_entities)
+            .add_systems(Update, debug_gizmos.run_if(in_state(GameState::InGame)));
     }
 }
 
@@ -65,6 +131,7 @@ pub fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut hair_materials: ResMut<Assets<HairMaterial>>,
     mut weather_materials: ResMut<Assets<WeatherMaterial>>,
+    mut pending_map_path: ResMut<PendingMapPath>,
 ) {
     let run_texture = asset_server.load("run_sheet.png");
     let run_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 12, 1, None, None);
@@ -95,18 +162,38 @@ pub fn setup(
     let climb_lookback_texture = asset_server.load("climb_lookback_sheet.png");
     let climb_lookback_layout = TextureAtlasLayout::from_grid(UVec2::new(34, 34), 3, 1, None, None);
     let climb_lookback_layout_handle = texture_atlas_layouts.add(climb_lookback_layout);
+    let death_texture = asset_server.load("figs/death/death.png");
+    let mut death_layout = TextureAtlasLayout::new_empty(DEATH_SHEET_SIZE);
+    for rect in DEATH_FRAME_RECTS {
+        death_layout.add_texture(rect);
+    }
+    let death_layout_handle = texture_atlas_layouts.add(death_layout);
     let bangs_texture = asset_server.load("bangs.png");
 
+    let mut tilesets = HashMap::new();
+    for art_tag in TILESET_ART_TAGS {
+        tilesets.insert(
+            art_tag.to_string(),
+            TilesetArt {
+                texture: asset_server.load(format!("figs/tilesets/{art_tag}.png")),
+                layout: texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+                    UVec2::splat(TILE_SIZE as u32),
+                    GROUND_TILE_COLUMNS as u32,
+                    GROUND_TILE_ROWS as u32,
+                    None,
+                    None,
+                )),
+            },
+        );
+    }
+
     let level_art = LevelArt {
-        background: asset_server.load("figs/bgs/01/bg0.png"),
-        dirt_texture: asset_server.load("figs/tilesets/dirt.png"),
-        dirt_layout: texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
-            UVec2::splat(TILE_SIZE as u32),
-            DIRT_TILE_COLUMNS as u32,
-            DIRT_TILE_ROWS as u32,
-            None,
-            None,
-        )),
+        backgrounds: vec![
+            asset_server.load("figs/bgs/01/bg0.png"),
+            asset_server.load("figs/bgs/01/bg1.png"),
+            asset_server.load("figs/bgs/01/bg2.png"),
+        ],
+        tilesets,
         danger_up: asset_server.load("figs/danger/outline_up00.png"),
         danger_down: asset_server.load("figs/danger/outline_down00.png"),
         danger_left: asset_server.load("figs/danger/outline_left00.png"),
@@ -121,7 +208,11 @@ pub fn setup(
         dash_crystal_vanished: asset_server.load("figs/DashCystal/vanished.png"),
     };
 
-    let map = load_map_from_path(DEFAULT_MAP_PATH)
+    let map_path = pending_map_path
+        .path
+        .take()
+        .unwrap_or_else(|| DEFAULT_MAP_PATH.into());
+    let map = load_map_from_path(&map_path)
         .unwrap_or_else(|error| panic!("unable to load initial map data: {error}"));
     let room = map
         .starting_room()
@@ -135,7 +226,7 @@ pub fn setup(
 
     commands.insert_resource(LoadedMap {
         data: map.clone(),
-        path: DEFAULT_MAP_PATH.into(),
+        path: map_path,
     });
     commands.insert_resource(ActiveRoom {
         map_id: map.id.clone(),
@@ -175,6 +266,8 @@ pub fn setup(
         climb_layout_handle,
         climb_lookback_texture,
         climb_lookback_layout_handle,
+        death_texture,
+        death_layout_handle,
         spawn_position,
         hair_entities,
         bangs_entity,
@@ -188,7 +281,7 @@ fn spawn_camera(commands: &mut Commands) {
         viewport_height: 180.0,
     };
 
-    commands.spawn((Camera2d, projection));
+    commands.spawn((GameplayEntity, Camera2d, projection, IsDefaultUiCamera));
 }
 
 fn spawn_hair_entities(
@@ -208,9 +301,11 @@ fn spawn_hair_entities(
     for size in HAIR_SEGMENT_SIZES {
         let id = commands
             .spawn((
+                GameplayEntity,
                 HairSegment,
                 Mesh2d(hair_mesh.clone()),
                 MeshMaterial2d(hair_material.clone()),
+                Visibility::Visible,
                 Transform {
                     translation: Vec3::new(0.0, 0.0, HAIR_SEGMENT_Z),
                     scale: Vec3::splat(size),
@@ -223,7 +318,9 @@ fn spawn_hair_entities(
 
     let bangs_entity = commands
         .spawn((
+            GameplayEntity,
             HairBangs,
+            Visibility::Visible,
             Sprite {
                 image: bangs_texture,
                 color: Color::srgb(0.9, 0.25, 0.3),
@@ -257,6 +354,8 @@ fn spawn_player(
     climb_layout_handle: Handle<TextureAtlasLayout>,
     climb_lookback_texture: Handle<Image>,
     climb_lookback_layout_handle: Handle<TextureAtlasLayout>,
+    death_texture: Handle<Image>,
+    death_layout_handle: Handle<TextureAtlasLayout>,
     spawn_position: Vec2,
     hair_entities: Vec<Entity>,
     bangs_entity: Entity,
@@ -302,8 +401,13 @@ fn spawn_player(
     ));
 
     player.insert((
+        GameplayEntity,
         Crouching(false),
         ColliderSize(PLAYER_COLLIDER_SIZE),
+        ClimbStamina {
+            current: CLIMB_STAMINA_MAX,
+            low_flash_timer: 0.0,
+        },
         ClimbTopOutState {
             active: false,
             timer: 0.0,
@@ -311,6 +415,7 @@ fn spawn_player(
             start: Vec3::ZERO,
             target: Vec3::ZERO,
         },
+        CornerBoostState::default(),
         DashSlideState {
             timer: 0.0,
             direction: 0.0,
@@ -335,6 +440,8 @@ fn spawn_player(
             climb_layout: climb_layout_handle,
             climb_lookback_texture,
             climb_lookback_layout: climb_lookback_layout_handle,
+            death_texture,
+            death_layout: death_layout_handle,
         },
         Sprite {
             image: idle_texture,
@@ -359,8 +466,7 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
             CollisionKind::SolidGround
             | CollisionKind::WallSurface
             | CollisionKind::OneWayPlatform => Color::NONE,
-            CollisionKind::CameraZone => Color::srgba(0.2, 0.4, 0.8, 0.18),
-            CollisionKind::EffectZone => Color::srgba(0.2, 0.8, 0.6, 0.18),
+            CollisionKind::CameraZone | CollisionKind::EffectZone => Color::NONE,
         };
 
         let sprite = Sprite {
@@ -375,7 +481,7 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
             | CollisionKind::WallSurface
             | CollisionKind::OneWayPlatform => {
                 commands.spawn((Ground, LevelEntity, sprite, transform));
-                spawn_dirt_tiles(commands, collision, &solid_cells, level_art);
+                spawn_ground_tiles(commands, collision, &solid_cells, level_art);
             }
             CollisionKind::CameraZone | CollisionKind::EffectZone => {
                 commands.spawn((LevelEntity, sprite, transform));
@@ -395,6 +501,19 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
             Transform::from_xyz(hazard.x, hazard.y, 0.0),
         ));
         spawn_hazard_tiles(commands, hazard, &solid_cells, level_art);
+    }
+
+    for completion_zone in &room.completion_zones {
+        commands.spawn((
+            CompletionZone,
+            LevelEntity,
+            Sprite {
+                color: Color::NONE,
+                custom_size: Some(completion_zone.size()),
+                ..default()
+            },
+            Transform::from_xyz(completion_zone.x, completion_zone.y, 0.0),
+        ));
     }
 
     for checkpoint in &room.checkpoints {
@@ -468,16 +587,18 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
 }
 
 fn spawn_room_background(commands: &mut Commands, room: &RoomData, level_art: &LevelArt) {
-    commands.spawn((
-        LevelEntity,
-        Name::new(format!("room_background:{}", room.id)),
-        Sprite {
-            image: level_art.background.clone(),
-            custom_size: Some(room.bounds.size()),
-            ..default()
-        },
-        Transform::from_xyz(room.bounds.x, room.bounds.y, BACKGROUND_Z),
-    ));
+    for (index, background) in level_art.backgrounds.iter().enumerate() {
+        commands.spawn((
+            LevelEntity,
+            Name::new(format!("room_background:{}:{}", room.id, index)),
+            Sprite {
+                image: background.clone(),
+                custom_size: Some(room.bounds.size()),
+                ..default()
+            },
+            Transform::from_xyz(room.bounds.x, room.bounds.y, BACKGROUND_Z + index as f32 * 0.1),
+        ));
+    }
 }
 
 fn collect_solid_cells(room: &RoomData) -> HashSet<(i32, i32)> {
@@ -511,7 +632,7 @@ fn rect_to_grid_bounds(x: f32, y: f32, w: f32, h: f32) -> (i32, i32, i32, i32) {
     (min_x, max_x, min_y, max_y)
 }
 
-fn spawn_dirt_tiles(
+fn spawn_ground_tiles(
     commands: &mut Commands,
     collision: &CollisionRect,
     solid_cells: &HashSet<(i32, i32)>,
@@ -519,6 +640,7 @@ fn spawn_dirt_tiles(
 ) {
     let (min_x, max_x, min_y, max_y) =
         rect_to_grid_bounds(collision.x, collision.y, collision.w, collision.h);
+    let tileset = level_art.tileset_for_tag(collision.art_tag.as_deref());
 
     for gx in min_x..=max_x {
         for gy in min_y..=max_y {
@@ -533,9 +655,9 @@ fn spawn_dirt_tiles(
             commands.spawn((
                 LevelEntity,
                 Sprite {
-                    image: level_art.dirt_texture.clone(),
+                    image: tileset.texture.clone(),
                     texture_atlas: Some(TextureAtlas {
-                        layout: level_art.dirt_layout.clone(),
+                        layout: tileset.layout.clone(),
                         index: atlas_index,
                     }),
                     ..default()
@@ -543,6 +665,16 @@ fn spawn_dirt_tiles(
                 Transform::from_xyz(world_x, world_y, 0.2),
             ));
         }
+    }
+}
+
+impl LevelArt {
+    fn tileset_for_tag(&self, art_tag: Option<&str>) -> &TilesetArt {
+        art_tag
+            .and_then(normalize_tileset_art_tag)
+            .and_then(|tag| self.tilesets.get(tag))
+            .or_else(|| self.tilesets.get(DEFAULT_TILESET_ART_TAG))
+            .expect("default dirt tileset should be loaded")
     }
 }
 
@@ -704,6 +836,21 @@ pub fn debug_gizmos(mut gizmos: Gizmos, query: Query<(&Transform, &ColliderSize)
     }
 }
 
+fn cleanup_gameplay_entities(
+    mut commands: Commands,
+    gameplay_entities: Query<Entity, With<GameplayEntity>>,
+    level_entities: Query<Entity, With<LevelEntity>>,
+    mut pending_map_path: ResMut<PendingMapPath>,
+) {
+    for entity in &gameplay_entities {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in &level_entities {
+        commands.entity(entity).despawn_recursive();
+    }
+    pending_map_path.path = None;
+}
+
 fn spawn_weather_overlay(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -718,6 +865,7 @@ fn spawn_weather_overlay(
     });
 
     commands.spawn((
+        GameplayEntity,
         WeatherOverlay,
         Mesh2d(weather_mesh),
         MeshMaterial2d(weather_material),

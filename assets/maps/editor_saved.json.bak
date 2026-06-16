@@ -30,7 +30,7 @@
           "y": -64.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_entry_slab"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -38,7 +38,7 @@
           "y": -32.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_middle_bridge"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -46,7 +46,7 @@
           "y": -32.0,
           "w": 72.0,
           "h": 16.0,
-          "art_tag": "snow_city_exit_bridge"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -54,7 +54,7 @@
           "y": 8.0,
           "w": 48.0,
           "h": 16.0,
-          "art_tag": "snow_city_upper_snow_lip"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -62,7 +62,7 @@
           "y": -8.0,
           "w": 16.0,
           "h": 112.0,
-          "art_tag": "snow_city_left_ruin"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -70,7 +70,7 @@
           "y": 0.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_cracked_pillar"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -78,7 +78,7 @@
           "y": 16.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_narrow_tower"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -90,35 +90,11 @@
         },
         {
           "kind": "solid_ground",
-          "x": -60.0,
-          "y": 20.0,
-          "w": 8.0,
-          "h": 8.0,
-          "art_tag": null
-        },
-        {
-          "kind": "solid_ground",
-          "x": -60.0,
-          "y": 36.0,
-          "w": 8.0,
-          "h": 8.0,
-          "art_tag": null
-        },
-        {
-          "kind": "solid_ground",
-          "x": -60.0,
-          "y": 28.0,
-          "w": 8.0,
-          "h": 8.0,
-          "art_tag": null
-        },
-        {
-          "kind": "solid_ground",
           "x": -64.0,
           "y": -44.0,
           "w": 64.0,
           "h": 8.0,
-          "art_tag": null
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -126,7 +102,7 @@
           "y": -52.0,
           "w": 64.0,
           "h": 8.0,
-          "art_tag": null
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -134,7 +110,7 @@
           "y": -4.0,
           "w": 16.0,
           "h": 104.0,
-          "art_tag": null
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -166,7 +142,7 @@
           "y": 20.0,
           "w": 16.0,
           "h": 88.0,
-          "art_tag": null
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -174,7 +150,7 @@
           "y": -64.0,
           "w": 416.0,
           "h": 32.0,
-          "art_tag": null
+          "art_tag": "snow"
         }
       ],
       "hazards": [
@@ -241,6 +217,11 @@
           "id": "editor_1",
           "x": -136.0,
           "y": 24.0
+        },
+        {
+          "id": "editor_1",
+          "x": -88.0,
+          "y": 56.0
         }
       ],
       "exits": [
@@ -255,7 +236,8 @@
           "h": 128.0,
           "preserve_momentum": true
         }
-      ]
+      ],
+      "completion_zones": []
     },
     {
       "id": "room_01",
@@ -285,7 +267,7 @@
           "y": -56.0,
           "w": 72.0,
           "h": 16.0,
-          "art_tag": "snow_city_low_entry"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -293,7 +275,7 @@
           "y": -40.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_short_hanging_slab"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -301,7 +283,7 @@
           "y": -16.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_mid_safe_chip"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -309,7 +291,7 @@
           "y": 16.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_upper_approach"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -317,7 +299,7 @@
           "y": 16.0,
           "w": 80.0,
           "h": 16.0,
-          "art_tag": "snow_city_upper_exit_slab"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -325,7 +307,7 @@
           "y": -8.0,
           "w": 16.0,
           "h": 128.0,
-          "art_tag": "snow_city_left_broken_face"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -333,7 +315,7 @@
           "y": 8.0,
           "w": 16.0,
           "h": 112.0,
-          "art_tag": "snow_city_split_column"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -341,7 +323,7 @@
           "y": 24.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_right_climb_wall"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -469,7 +451,8 @@
           "h": 112.0,
           "preserve_momentum": true
         }
-      ]
+      ],
+      "completion_zones": []
     },
     {
       "id": "room_02",
@@ -499,7 +482,7 @@
           "y": 16.0,
           "w": 72.0,
           "h": 16.0,
-          "art_tag": "snow_city_roof_entry"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -507,7 +490,7 @@
           "y": 0.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_dropped_roof_chunk"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -515,7 +498,7 @@
           "y": 40.0,
           "w": 96.0,
           "h": 16.0,
-          "art_tag": "snow_city_top_exit_shelf"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -523,7 +506,7 @@
           "y": 8.0,
           "w": 16.0,
           "h": 128.0,
-          "art_tag": "snow_city_left_ragged_wall"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -534,14 +517,7 @@
           "art_tag": null
         }
       ],
-      "hazards": [
-        {
-          "x": 728.0,
-          "y": 96.0,
-          "w": 16.0,
-          "h": 16.0
-        }
-      ],
+      "hazards": [],
       "checkpoints": [
         {
           "id": "room_02_entry",
@@ -578,7 +554,8 @@
           "h": 16.0,
           "preserve_momentum": false
         }
-      ]
+      ],
+      "completion_zones": []
     },
     {
       "id": "room_03",
@@ -608,7 +585,7 @@
           "y": 104.0,
           "w": 72.0,
           "h": 16.0,
-          "art_tag": "snow_city_shaft_entry"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -616,7 +593,7 @@
           "y": 128.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_shaft_lower_chip"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -624,7 +601,7 @@
           "y": 152.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_shaft_middle_chip"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -632,7 +609,7 @@
           "y": 176.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_shaft_balcony"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -640,7 +617,7 @@
           "y": 200.0,
           "w": 96.0,
           "h": 16.0,
-          "art_tag": "snow_city_shaft_exit_slab"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -648,7 +625,7 @@
           "y": 152.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_shaft_left_wall"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -656,7 +633,7 @@
           "y": 200.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_shaft_right_wall"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -664,7 +641,7 @@
           "y": 208.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_shaft_outer_face"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -673,20 +650,52 @@
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 728.0,
+          "y": 132.0,
+          "w": 144.0,
+          "h": 24.0,
+          "art_tag": "snow"
         }
       ],
       "hazards": [
         {
-          "x": 616.0,
-          "y": 200.0,
+          "x": 612.0,
+          "y": 164.0,
+          "w": 8.0,
+          "h": 56.0
+        },
+        {
+          "x": 612.0,
+          "y": 196.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": 600.0,
+          "y": 204.0,
           "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 688.0,
+          "y": 252.0,
+          "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 676.0,
+          "y": 176.0,
+          "w": 8.0,
           "h": 32.0
         },
         {
-          "x": 672.0,
-          "y": 240.0,
-          "w": 16.0,
-          "h": 16.0
+          "x": 700.0,
+          "y": 232.0,
+          "w": 8.0,
+          "h": 32.0
         }
       ],
       "checkpoints": [
@@ -725,7 +734,8 @@
           "h": 112.0,
           "preserve_momentum": true
         }
-      ]
+      ],
+      "completion_zones": []
     },
     {
       "id": "room_04",
@@ -755,7 +765,7 @@
           "y": 184.0,
           "w": 72.0,
           "h": 16.0,
-          "art_tag": "snow_city_bridge_entry"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -763,7 +773,7 @@
           "y": 184.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_bridge_repaired_span"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -771,7 +781,7 @@
           "y": 200.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_bridge_mid_step"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -779,7 +789,7 @@
           "y": 216.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_bridge_hanging_plate"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -787,7 +797,7 @@
           "y": 240.0,
           "w": 96.0,
           "h": 16.0,
-          "art_tag": "snow_city_bridge_upper_landing"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -795,7 +805,7 @@
           "y": 192.0,
           "w": 16.0,
           "h": 112.0,
-          "art_tag": "snow_city_bridge_left_ruin"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -864,7 +874,8 @@
           "h": 16.0,
           "preserve_momentum": false
         }
-      ]
+      ],
+      "completion_zones": []
     },
     {
       "id": "room_05",
@@ -894,7 +905,7 @@
           "y": 296.0,
           "w": 80.0,
           "h": 16.0,
-          "art_tag": "snow_city_courtyard_entry"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -902,7 +913,7 @@
           "y": 312.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_courtyard_low_step"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -910,15 +921,7 @@
           "y": 328.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_courtyard_middle_step"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 1080.0,
-          "y": 352.0,
-          "w": 64.0,
-          "h": 16.0,
-          "art_tag": "snow_city_courtyard_high_chip"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -926,7 +929,7 @@
           "y": 368.0,
           "w": 96.0,
           "h": 16.0,
-          "art_tag": "snow_city_courtyard_right_shelf"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -934,7 +937,7 @@
           "y": 328.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_courtyard_left_wall"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -942,7 +945,7 @@
           "y": 376.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_courtyard_tall_face"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -959,11 +962,6 @@
           "id": "room_05_entry",
           "x": 872.0,
           "y": 313.0
-        },
-        {
-          "id": "room_05_right",
-          "x": 1160.0,
-          "y": 385.0
         }
       ],
       "dashcrystals": [],
@@ -990,7 +988,8 @@
           "h": 112.0,
           "preserve_momentum": true
         }
-      ]
+      ],
+      "completion_zones": []
     },
     {
       "id": "room_06",
@@ -1006,6 +1005,11 @@
           "id": "left_entry",
           "x": 1168.0,
           "y": 385.0
+        },
+        {
+          "id": "editor_2",
+          "x": 1248.0,
+          "y": 384.0
         }
       ],
       "collision": [
@@ -1015,7 +1019,7 @@
           "y": 368.0,
           "w": 72.0,
           "h": 16.0,
-          "art_tag": "snow_city_final_entry"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -1023,7 +1027,7 @@
           "y": 368.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_final_repaired_step"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -1031,7 +1035,7 @@
           "y": 384.0,
           "w": 56.0,
           "h": 16.0,
-          "art_tag": "snow_city_final_mid_perch"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -1039,7 +1043,7 @@
           "y": 400.0,
           "w": 64.0,
           "h": 16.0,
-          "art_tag": "snow_city_final_last_step"
+          "art_tag": "snow"
         },
         {
           "kind": "solid_ground",
@@ -1047,7 +1051,7 @@
           "y": 408.0,
           "w": 112.0,
           "h": 16.0,
-          "art_tag": "snow_city_final_finish_roof"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -1055,7 +1059,7 @@
           "y": 360.0,
           "w": 16.0,
           "h": 112.0,
-          "art_tag": "snow_city_final_left_ruin"
+          "art_tag": "snow"
         },
         {
           "kind": "wall_surface",
@@ -1063,7 +1067,7 @@
           "y": 392.0,
           "w": 16.0,
           "h": 96.0,
-          "art_tag": "snow_city_final_broken_end"
+          "art_tag": "snow"
         },
         {
           "kind": "camera_zone",
@@ -1098,22 +1102,34 @@
           "id": "room_06_finish",
           "x": 1408.0,
           "y": 425.0
+        },
+        {
+          "id": "editor_1",
+          "x": 1216.0,
+          "y": 392.0
         }
       ],
-      "dashcrystals": [],
+      "dashcrystals": [
+        {
+          "id": "editor_3",
+          "x": 1248.0,
+          "y": 392.0
+        }
+      ],
       "exits": [
         {
           "id": "room_06_to_05",
           "side": "left",
           "target_room": "room_05",
-          "target_spawn": "from_room_06",
+          "target_spawn": "bottom_entry",
           "x": 1120.0,
           "y": 408.0,
           "w": 16.0,
           "h": 112.0,
           "preserve_momentum": true
         }
-      ]
+      ],
+      "completion_zones": []
     }
   ]
 }

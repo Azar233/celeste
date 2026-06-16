@@ -1,18 +1,21 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    ClimbTopOutState, ColliderSize, Crouching, DashSlideState, DashState, Facing, FreezeFrameState,
-    Ground, Grounded, JumpState, MovementInput, Player, PlayerActionInput, PlayerState,
-    PlayerStateMachine, Velocity, WallContact, WallJumpTimer,
+    ClimbStamina, ClimbTopOutState, ColliderSize, CornerBoostState, Crouching, DashSlideState,
+    DashState, Facing, FreezeFrameState, Ground, Grounded, JumpState, MovementInput, Player,
+    PlayerActionInput, PlayerState, PlayerStateMachine, Velocity, WallContact, WallJumpTimer,
 };
 use crate::constants::{
-    AIR_ACCEL, AIR_FRICTION, AIR_TURN_FRICTION, APEX_HALF_GRAVITY_MULTIPLIER, CROUCH_COLLIDER_SIZE,
-    DASH_CORNER_CORRECTION, DASH_DURATION, DASH_END_MULTIPLIER, DASH_FREEZE_TIME,
+    AIR_ACCEL, AIR_FRICTION, AIR_TURN_FRICTION, APEX_HALF_GRAVITY_MULTIPLIER,
+    CLIMB_STAMINA_HOLD_DRAIN_PER_SEC, CLIMB_STAMINA_JUMP_COST, CLIMB_STAMINA_MAX,
+    CLIMB_STAMINA_MIN_TO_CLIMB, CLIMB_STAMINA_UP_DRAIN_PER_SEC, CORNER_BOOST_BONUS_SPEED,
+    CORNER_BOOST_MIN_BLOCKED_SPEED, CORNER_BOOST_TOP_TOLERANCE, CORNER_BOOST_WINDOW,
+    CROUCH_COLLIDER_SIZE, DASH_CORNER_CORRECTION, DASH_DURATION, DASH_END_MULTIPLIER, DASH_FREEZE_TIME,
     DASH_SLIDE_SPEED_MULTIPLIER, DASH_SLIDE_WINDOW, DASH_SPEED, DEATH_THRESHOLD,
     DUCK_SUPER_JUMP_X_MULTIPLIER, DUCK_SUPER_JUMP_Y_MULTIPLIER, FALL_MULTIPLIER, GRAVITY,
     GROUND_ACCEL, GROUND_FRICTION, GROUND_TURN_FRICTION, HALF_GRAVITY_THRESHOLD,
     JUMP_AWAY_FROM_WALL, JUMP_BUFFER_TIME, JUMP_GRACE_TIME, JUMP_VELOCITY, LOW_JUMP_MULTIPLIER,
-    MAX_FALL_SPEED, MAX_RUN_SPEED, PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
+    MAX_FALL_SPEED, MAX_RUN_SPEED, PLAYER_COLLIDER_SIZE,
     SUPER_JUMP_APEX_GRAVITY_MULTIPLIER, SUPER_JUMP_APEX_THRESHOLD, SUPER_JUMP_FALL_MULTIPLIER,
     SUPER_JUMP_GRAVITY_WINDOW, SUPER_JUMP_HORIZONTAL_SPEED, SUPER_JUMP_TURN_FRICTION,
     SUPER_JUMP_VERTICAL_SPEED, UPWARD_CORNER_CORRECTION, WALL_CLIMB_JUMP_FORCE_Y, WALL_CLIMB_LOCK,
@@ -20,6 +23,7 @@ use crate::constants::{
     WALL_SLIDE_SPEED,
 };
 use crate::level::ActiveRoom;
+use crate::systems::level::DeathSequence;
 use crate::utils::{can_use_collider, check_collision, move_towards};
 
 fn try_consume_ground_jump(
@@ -115,6 +119,44 @@ fn try_dash_corner_correction(
     }
 
     false
+}
+
+fn try_trigger_corner_boost(
+    corner_boost: &mut CornerBoostState,
+    player_transform: &Transform,
+    player_size: Vec2,
+    wall_contact: &WallContact,
+    velocity: &mut Velocity,
+    dash_state: &mut DashState,
+    state_machine: &mut PlayerStateMachine,
+) {
+    if !corner_boost.active || corner_boost.timer <= 0.0 || !corner_boost.climb_jump_armed {
+        return;
+    }
+
+    let player_bottom = player_transform.translation.y - player_size.y / 2.0;
+    let cleared_wall_top = player_bottom >= corner_boost.wall_top_y - CORNER_BOOST_TOP_TOLERANCE;
+    let left_recorded_wall = *wall_contact != corner_boost.wall_side;
+
+    if !cleared_wall_top || !left_recorded_wall {
+        return;
+    }
+
+    let boosted_speed = corner_boost.blocked_speed_x.abs() + CORNER_BOOST_BONUS_SPEED;
+    let target_speed = corner_boost.direction * boosted_speed;
+    if velocity.0.x.signum() != corner_boost.direction || velocity.0.x.abs() <= boosted_speed {
+        velocity.0.x = target_speed;
+    }
+
+    if dash_state.is_dashing {
+        dash_state.is_dashing = false;
+        dash_state.timer = 0.0;
+        if state_machine.current == PlayerState::Dash {
+            transition_player_state(state_machine, PlayerState::Normal);
+        }
+    }
+
+    corner_boost.clear();
 }
 
 fn try_upward_corner_correction(
@@ -233,10 +275,13 @@ fn try_consume_climb_jump(
     facing: &mut Facing,
     velocity: &mut Velocity,
     wall_jump_timer: &mut WallJumpTimer,
+    climb_stamina: &mut ClimbStamina,
+    corner_boost: &mut CornerBoostState,
 ) -> bool {
     if jump_state.jump_buffer_timer <= 0.0
         || *wall_contact == WallContact::None
         || !actions.grab_held
+        || climb_stamina.current <= CLIMB_STAMINA_MIN_TO_CLIMB
     {
         return false;
     }
@@ -267,6 +312,10 @@ fn try_consume_climb_jump(
     }
 
     jump_state.jump_buffer_timer = 0.0;
+    climb_stamina.current = (climb_stamina.current - CLIMB_STAMINA_JUMP_COST).max(0.0);
+    if corner_boost.active && corner_boost.timer > 0.0 {
+        corner_boost.climb_jump_armed = true;
+    }
     true
 }
 
@@ -278,6 +327,7 @@ fn resolve_player_state(
     wall_jump_timer: &WallJumpTimer,
     dash_state: &DashState,
     climb_top_out: &ClimbTopOutState,
+    climb_stamina: &ClimbStamina,
 ) -> PlayerState {
     if dash_state.is_dashing {
         PlayerState::Dash
@@ -286,7 +336,8 @@ fn resolve_player_state(
     } else if current_state == PlayerState::Climb {
         let can_keep_climbing = actions.grab_held
             && *wall_contact != WallContact::None
-            && wall_jump_timer.0 <= 0.0;
+            && wall_jump_timer.0 <= 0.0
+            && climb_stamina.current > CLIMB_STAMINA_MIN_TO_CLIMB;
 
         if !can_keep_climbing {
             PlayerState::Normal
@@ -297,6 +348,7 @@ fn resolve_player_state(
         && *wall_contact != WallContact::None
         && is_facing_wall(facing, wall_contact)
         && wall_jump_timer.0 <= 0.0
+        && climb_stamina.current > CLIMB_STAMINA_MIN_TO_CLIMB
     {
         PlayerState::Climb
     } else {
@@ -350,8 +402,14 @@ pub fn cache_player_input(
             || keyboard_input.just_pressed(KeyCode::KeyZ);
         actions.jump_held =
             keyboard_input.pressed(KeyCode::Space) || keyboard_input.pressed(KeyCode::KeyZ);
-        actions.dash_pressed = keyboard_input.just_pressed(KeyCode::KeyK)
+        let dash_held =
+            keyboard_input.pressed(KeyCode::KeyK) || keyboard_input.pressed(KeyCode::KeyC);
+        let raw_dash_pressed = keyboard_input.just_pressed(KeyCode::KeyK)
             || keyboard_input.just_pressed(KeyCode::KeyC);
+        if !dash_held {
+            actions.dash_requires_release = false;
+        }
+        actions.dash_pressed = raw_dash_pressed && !actions.dash_requires_release;
         actions.grab_held =
             keyboard_input.pressed(KeyCode::KeyJ) || keyboard_input.pressed(KeyCode::KeyX);
 
@@ -371,6 +429,7 @@ pub fn update_player_state_machine(
             &WallJumpTimer,
             &DashState,
             &ClimbTopOutState,
+            &ClimbStamina,
             &mut PlayerStateMachine,
         ),
         With<Player>,
@@ -384,6 +443,7 @@ pub fn update_player_state_machine(
         wall_jump_timer,
         dash_state,
         climb_top_out,
+        climb_stamina,
         mut state_machine,
     )) = query.get_single_mut()
     {
@@ -395,6 +455,7 @@ pub fn update_player_state_machine(
             wall_jump_timer,
             dash_state,
             climb_top_out,
+            climb_stamina,
         );
 
         if state_machine.current != next_state {
@@ -536,6 +597,8 @@ pub fn player_input(
             &Crouching,
             &ClimbTopOutState,
             &mut PlayerStateMachine,
+            &mut ClimbStamina,
+            &mut CornerBoostState,
         ),
         With<Player>,
     >,
@@ -554,6 +617,8 @@ pub fn player_input(
         crouching,
         climb_top_out,
         mut state_machine,
+        mut climb_stamina,
+        mut corner_boost,
     )) = query.get_single_mut()
     {
         if climb_top_out.active || state_machine.current == PlayerState::TopOut {
@@ -569,6 +634,8 @@ pub fn player_input(
 
         if grounded.0 && velocity.0.y <= 0.0 && !dash_state.is_dashing {
             dash_state.dashes_remaining = 1;
+            climb_stamina.current = CLIMB_STAMINA_MAX;
+            climb_stamina.low_flash_timer = 0.0;
         }
 
         if actions.dash_pressed && dash_state.dashes_remaining > 0 {
@@ -616,6 +683,8 @@ pub fn player_input(
                 &mut facing,
                 &mut velocity,
                 &mut wall_jump_timer,
+                &mut climb_stamina,
+                &mut corner_boost,
             )
         {
             transition_player_state(&mut state_machine, PlayerState::Normal);
@@ -635,6 +704,8 @@ pub fn player_input(
             &mut facing,
             &mut velocity,
             &mut wall_jump_timer,
+            &mut climb_stamina,
+            &mut corner_boost,
         ) {
             transition_player_state(&mut state_machine, PlayerState::Normal);
             return;
@@ -664,6 +735,25 @@ pub fn player_input(
     }
 }
 
+pub fn trigger_fall_death(
+    active_room: Res<ActiveRoom>,
+    mut death_sequence: ResMut<DeathSequence>,
+    player_query: Query<&Transform, With<Player>>,
+) {
+    if death_sequence.active() {
+        return;
+    }
+
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+
+    let _current_respawn = active_room.respawn_point;
+    if player_transform.translation.y < DEATH_THRESHOLD {
+        death_sequence.start();
+    }
+}
+
 pub fn apply_physics(
     mut query: Query<
         (
@@ -678,6 +768,7 @@ pub fn apply_physics(
             &PlayerActionInput,
             &Crouching,
             &ClimbTopOutState,
+            &mut ClimbStamina,
         ),
         With<Player>,
     >,
@@ -695,6 +786,7 @@ pub fn apply_physics(
         actions,
         crouching,
         climb_top_out,
+        mut climb_stamina,
     )) = query.get_single_mut()
     {
         let dt = time.delta_secs();
@@ -715,7 +807,19 @@ pub fn apply_physics(
                 if move_input.y < 0.0 {
                     climb_dir -= 1.0;
                 }
-                velocity.0.y = climb_dir * WALL_CLIMB_SPEED;
+
+                let drain_rate = if climb_dir > 0.0 {
+                    CLIMB_STAMINA_UP_DRAIN_PER_SEC
+                } else {
+                    CLIMB_STAMINA_HOLD_DRAIN_PER_SEC
+                };
+                climb_stamina.current = (climb_stamina.current - drain_rate * dt).max(0.0);
+
+                if climb_stamina.current <= CLIMB_STAMINA_MIN_TO_CLIMB {
+                    velocity.0.y = 0.0;
+                } else {
+                    velocity.0.y = climb_dir * WALL_CLIMB_SPEED;
+                }
             }
             PlayerState::Normal => {
                 if wall_jump_timer.0 <= 0.0 {
@@ -818,23 +922,24 @@ pub fn player_movement(
             (
                 &mut Transform,
                 &mut Velocity,
-                &mut JumpState,
+                &JumpState,
                 &mut Grounded,
                 &mut WallContact,
-                &mut ColliderSize,
+                &ColliderSize,
                 &mut Crouching,
                 &mut DashState,
                 &mut DashSlideState,
                 &mut ClimbTopOutState,
+                &mut CornerBoostState,
                 &mut PlayerStateMachine,
                 &MovementInput,
+                &ClimbStamina,
             ),
             With<Player>,
         >,
         Query<(&Transform, &Sprite), With<Ground>>,
     )>,
     time: Res<Time<Fixed>>,
-    active_room: Res<ActiveRoom>,
 ) {
     let obstacles: Vec<(Vec3, Vec2)> = param_set
         .p1()
@@ -847,16 +952,18 @@ pub fn player_movement(
     if let Ok((
         mut player_transform,
         mut velocity,
-        mut jump_state,
+        _jump_state,
         mut grounded,
         mut wall_contact,
-        mut collider_size,
+        collider_size,
         mut crouching,
         mut dash_state,
         mut dash_slide,
         mut climb_top_out,
+        mut corner_boost,
         mut state_machine,
         move_input,
+        _climb_stamina,
     )) = param_set.p0().get_single_mut()
     {
         let player_size = collider_size.0;
@@ -864,6 +971,13 @@ pub fn player_movement(
         let was_grounded = grounded.0;
 
         if climb_top_out.active {
+            if corner_boost.active {
+                corner_boost.timer = (corner_boost.timer - delta_seconds).max(0.0);
+                if corner_boost.timer <= 0.0 {
+                    corner_boost.clear();
+                }
+            }
+
             climb_top_out.timer = (climb_top_out.timer - delta_seconds).max(0.0);
             let progress = if climb_top_out.duration <= 0.0 {
                 1.0
@@ -882,11 +996,27 @@ pub fn player_movement(
                 grounded.0 = true;
                 *wall_contact = WallContact::None;
                 transition_player_state(&mut state_machine, PlayerState::Normal);
+                try_trigger_corner_boost(
+                    &mut corner_boost,
+                    &player_transform,
+                    player_size,
+                    &wall_contact,
+                    &mut velocity,
+                    &mut dash_state,
+                    &mut state_machine,
+                );
             } else {
                 *wall_contact = WallContact::None;
                 transition_player_state(&mut state_machine, PlayerState::TopOut);
             }
             return;
+        }
+
+        if corner_boost.active {
+            corner_boost.timer = (corner_boost.timer - delta_seconds).max(0.0);
+            if corner_boost.timer <= 0.0 {
+                corner_boost.clear();
+            }
         }
 
         grounded.0 = false;
@@ -912,6 +1042,21 @@ pub fn player_movement(
                         player_transform.translation.x =
                             ground_pos.x + ground_size.x / 2.0 + player_size.x / 2.0;
                     }
+
+                    if velocity.0.x.abs() >= CORNER_BOOST_MIN_BLOCKED_SPEED {
+                        corner_boost.active = true;
+                        corner_boost.timer = CORNER_BOOST_WINDOW;
+                        corner_boost.blocked_speed_x = velocity.0.x;
+                        corner_boost.direction = velocity.0.x.signum();
+                        corner_boost.wall_side = if velocity.0.x > 0.0 {
+                            WallContact::Right
+                        } else {
+                            WallContact::Left
+                        };
+                        corner_boost.wall_top_y = ground_pos.y + ground_size.y / 2.0;
+                        corner_boost.climb_jump_armed = false;
+                    }
+
                     velocity.0.x = 0.0;
                 }
             }
@@ -961,6 +1106,16 @@ pub fn player_movement(
             }
         }
 
+        try_trigger_corner_boost(
+            &mut corner_boost,
+            &player_transform,
+            player_size,
+            &wall_contact,
+            &mut velocity,
+            &mut dash_state,
+            &mut state_machine,
+        );
+
         if state_machine.current == PlayerState::Climb && move_input.y > 0.0 {
             if let Some(target) = find_climb_top_out_target(
                 player_transform.translation,
@@ -998,32 +1153,5 @@ pub fn player_movement(
             transition_player_state(&mut state_machine, PlayerState::Normal);
         }
 
-        if player_transform.translation.y < DEATH_THRESHOLD {
-            player_transform.translation = Vec3::new(
-                active_room.respawn_point.x,
-                active_room.respawn_point.y,
-                PLAYER_RENDER_Z,
-            );
-            velocity.0 = Vec2::ZERO;
-            jump_state.jump_grace_timer = 0.0;
-            jump_state.jump_buffer_timer = 0.0;
-            jump_state.super_jump_timer = 0.0;
-            jump_state.fast_jump_active = false;
-            *wall_contact = WallContact::None;
-            grounded.0 = false;
-            crouching.0 = false;
-            dash_state.is_dashing = false;
-            dash_state.timer = 0.0;
-            dash_slide.timer = 0.0;
-            dash_slide.direction = 0.0;
-            climb_top_out.active = false;
-            climb_top_out.timer = 0.0;
-            climb_top_out.duration = 0.0;
-            climb_top_out.start = player_transform.translation;
-            climb_top_out.target = player_transform.translation;
-            collider_size.0 = PLAYER_COLLIDER_SIZE;
-            state_machine.current = PlayerState::Normal;
-            state_machine.previous = PlayerState::Normal;
-        }
     }
 }

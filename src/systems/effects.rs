@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    Crouching, DashState, DashTrailEmitter, DashTrailParticle, Grounded, Player,
+    Crouching, DashState, DashTrailEmitter, DashTrailParticle, GameplayEntity, Grounded, Player,
 };
 use crate::constants::{
     DASH_TRAIL_INTERVAL, DASH_TRAIL_LIFETIME, DASH_TRAIL_PARTICLE_COUNT, DASH_TRAIL_SPACING,
@@ -73,6 +73,7 @@ pub fn emit_dash_trail(
             let lifetime = DASH_TRAIL_LIFETIME + step * 0.004;
 
             commands.spawn((
+                GameplayEntity,
                 Sprite {
                     color,
                     custom_size: Some(Vec2::splat(size)),

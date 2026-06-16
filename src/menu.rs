@@ -2,8 +2,9 @@ use std::fs;
 
 use bevy::prelude::*;
 
+use crate::app_state::GameState;
 use crate::components::{
-    ClimbTopOutState, ColliderSize, Crouching, DashSlideState, DashState, Facing,
+    ClimbTopOutState, ColliderSize, CornerBoostState, Crouching, DashSlideState, DashState, Facing,
     Grounded, Hair, LevelEntity, Player, PlayerState, PlayerStateMachine, Velocity,
     WallContact, WeatherOverlay,
 };
@@ -50,6 +51,7 @@ struct MapItem(pub String);
 const ACT_CONTINUE: &str = "continue";
 const ACT_RELOAD_CURRENT: &str = "reload_current";
 const ACT_SWITCH_MAP: &str = "switch_map";
+const ACT_MAIN_MENU: &str = "main_menu";
 const ACT_EXIT: &str = "exit";
 
 // ── Plugin ─────────────────────────────────────────────
@@ -61,7 +63,10 @@ impl Plugin for MenuPlugin {
         let maps = scan_maps();
         app.insert_resource(MenuOpen::default())
             .insert_resource(MapRegistry { maps })
-            .add_systems(Update, (handle_esc, handle_button_interaction));
+            .add_systems(
+                Update,
+                (handle_esc, handle_button_interaction).run_if(in_state(GameState::InGame)),
+            );
     }
 }
 
@@ -139,6 +144,7 @@ fn spawn_menu_root(commands: &mut Commands) {
             spawn_button(parent, "Continue", ACT_CONTINUE);
             spawn_button(parent, "Reload Current Room", ACT_RELOAD_CURRENT);
             spawn_button(parent, "Switch Map", ACT_SWITCH_MAP);
+            spawn_button(parent, "Main Menu", ACT_MAIN_MENU);
             spawn_button(parent, "Exit Game", ACT_EXIT);
         });
 }
@@ -233,6 +239,7 @@ fn handle_button_interaction(
             &mut DashSlideState,
             &mut PlayerStateMachine,
             &mut ClimbTopOutState,
+            &mut CornerBoostState,
             &mut Hair,
             &Facing,
         ),
@@ -241,6 +248,7 @@ fn handle_button_interaction(
     mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
     mut weather_query: Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
     mut app_exit: EventWriter<AppExit>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     for (entity, interaction, action, map_item) in &menu_buttons {
         match *interaction {
@@ -287,6 +295,10 @@ fn handle_button_interaction(
                                 &mut weather_query,
                             );
                             close_menu(&mut commands, &menu_root, &mut menu_open);
+                        }
+                        ACT_MAIN_MENU => {
+                            close_menu(&mut commands, &menu_root, &mut menu_open);
+                            next_state.set(GameState::MainMenu);
                         }
                         ACT_EXIT => {
                             app_exit.send(AppExit::Success);
@@ -390,6 +402,7 @@ fn reload_menu_with_map_list(
                 spawn_map_list(parent, maps);
             }
 
+            spawn_button(parent, "Main Menu", ACT_MAIN_MENU);
             spawn_button(parent, "Exit Game", ACT_EXIT);
         });
 }
@@ -412,6 +425,7 @@ fn reload_current_room(
             &mut DashSlideState,
             &mut PlayerStateMachine,
             &mut ClimbTopOutState,
+            &mut CornerBoostState,
             &mut Hair,
             &Facing,
         ),
@@ -460,6 +474,7 @@ fn reload_current_room(
         mut dash_slide,
         mut state_machine,
         mut climb_top_out,
+        mut corner_boost,
         mut hair,
         facing,
     )) = player_query.get_single_mut()
@@ -480,6 +495,7 @@ fn reload_current_room(
     climb_top_out.active = false;
     climb_top_out.timer = 0.0;
     climb_top_out.duration = 0.0;
+    corner_boost.clear();
     climb_top_out.start = player_transform.translation;
     climb_top_out.target = player_transform.translation;
     collider_size.0 = PLAYER_COLLIDER_SIZE;
@@ -525,6 +541,7 @@ fn switch_map(
             &mut DashSlideState,
             &mut PlayerStateMachine,
             &mut ClimbTopOutState,
+            &mut CornerBoostState,
             &mut Hair,
             &Facing,
         ),
@@ -576,6 +593,7 @@ fn switch_map(
         mut dash_slide,
         mut state_machine,
         mut climb_top_out,
+        mut corner_boost,
         mut hair,
         facing,
     )) = player_query.get_single_mut()
@@ -596,6 +614,7 @@ fn switch_map(
     climb_top_out.active = false;
     climb_top_out.timer = 0.0;
     climb_top_out.duration = 0.0;
+    corner_boost.clear();
     climb_top_out.start = player_transform.translation;
     climb_top_out.target = player_transform.translation;
     collider_size.0 = PLAYER_COLLIDER_SIZE;

@@ -29,6 +29,9 @@ pub struct Ground;
 pub struct Hazard;
 
 #[derive(Component)]
+pub struct CompletionZone;
+
+#[derive(Component)]
 pub struct CheckpointMarker {
     pub id: String,
 }
@@ -55,11 +58,23 @@ pub struct DashCrystal {
 pub struct LevelEntity;
 
 #[derive(Component)]
+pub struct CompletionOverlay;
+
+#[derive(Component)]
+pub struct GameplayEntity;
+
+#[derive(Component)]
 pub struct JumpState {
     pub jump_grace_timer: f32,
     pub jump_buffer_timer: f32,
     pub super_jump_timer: f32,
     pub fast_jump_active: bool,
+}
+
+#[derive(Component)]
+pub struct ClimbStamina {
+    pub current: f32,
+    pub low_flash_timer: f32,
 }
 
 #[derive(Component)]
@@ -103,6 +118,43 @@ pub struct ClimbTopOutState {
 }
 
 #[derive(Component)]
+pub struct CornerBoostState {
+    pub active: bool,
+    pub timer: f32,
+    pub blocked_speed_x: f32,
+    pub direction: f32,
+    pub wall_side: WallContact,
+    pub wall_top_y: f32,
+    pub climb_jump_armed: bool,
+}
+
+impl CornerBoostState {
+    pub fn clear(&mut self) {
+        self.active = false;
+        self.timer = 0.0;
+        self.blocked_speed_x = 0.0;
+        self.direction = 0.0;
+        self.wall_side = WallContact::None;
+        self.wall_top_y = 0.0;
+        self.climb_jump_armed = false;
+    }
+}
+
+impl Default for CornerBoostState {
+    fn default() -> Self {
+        Self {
+            active: false,
+            timer: 0.0,
+            blocked_speed_x: 0.0,
+            direction: 0.0,
+            wall_side: WallContact::None,
+            wall_top_y: 0.0,
+            climb_jump_armed: false,
+        }
+    }
+}
+
+#[derive(Component)]
 pub struct DashTrailEmitter {
     pub cooldown: f32,
     pub was_dashing: bool,
@@ -125,6 +177,7 @@ pub struct PlayerActionInput {
     pub jump_pressed: bool,
     pub jump_held: bool,
     pub dash_pressed: bool,
+    pub dash_requires_release: bool,
     pub grab_held: bool,
 }
 
@@ -217,6 +270,7 @@ pub enum AnimationState {
     FallFast,
     Climb,
     ClimbLookback,
+    Death,
 }
 
 #[derive(Component)]
@@ -240,4 +294,6 @@ pub struct PlayerAnimations {
     pub climb_layout: Handle<TextureAtlasLayout>,
     pub climb_lookback_texture: Handle<Image>,
     pub climb_lookback_layout: Handle<TextureAtlasLayout>,
+    pub death_texture: Handle<Image>,
+    pub death_layout: Handle<TextureAtlasLayout>,
 }

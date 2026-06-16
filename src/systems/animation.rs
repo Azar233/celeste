@@ -1,11 +1,14 @@
 use bevy::prelude::*;
 
 use crate::components::{
-    AnimationState, AnimationTimer, Crouching, DashState, Facing, Grounded, JumpState,
-    MovementInput, PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity,
-    WallContact, WallJumpTimer,
+    AnimationState, AnimationTimer, ClimbStamina, Crouching, DashState, Facing, Grounded,
+    JumpState, MovementInput, PlayerAnimations, PlayerState, PlayerStateMachine, Velocity,
+    WallContact,
 };
-use crate::constants::FALL_FAST_ANIMATION_SPEED;
+use crate::constants::{
+    CLIMB_STAMINA_LOW_FLASH_INTERVAL, CLIMB_STAMINA_LOW_TINT, CLIMB_STAMINA_MIN_TO_CLIMB,
+    FALL_FAST_ANIMATION_SPEED,
+};
 
 pub fn animate_sprite(
     time: Res<Time>,
@@ -14,7 +17,6 @@ pub fn animate_sprite(
         &mut Sprite,
         &mut AnimationState,
         &PlayerAnimations,
-        &PlayerActionInput,
         &Velocity,
         &Facing,
         &Grounded,
@@ -22,9 +24,9 @@ pub fn animate_sprite(
         &JumpState,
         &MovementInput,
         &WallContact,
-        &WallJumpTimer,
         &DashState,
         &PlayerStateMachine,
+        &mut ClimbStamina,
     )>,
 ) {
     for (
@@ -32,7 +34,6 @@ pub fn animate_sprite(
         mut sprite,
         mut state,
         animations,
-        actions,
         velocity,
         facing,
         grounded,
@@ -40,17 +41,31 @@ pub fn animate_sprite(
         jump_state,
         move_input,
         wall_contact,
-        wall_jump_timer,
         dash_state,
         state_machine,
+        mut climb_stamina,
     ) in &mut query
     {
+        if climb_stamina.current <= CLIMB_STAMINA_MIN_TO_CLIMB {
+            climb_stamina.low_flash_timer += time.delta_secs();
+            let flash_phase =
+                (climb_stamina.low_flash_timer / CLIMB_STAMINA_LOW_FLASH_INTERVAL) as i32;
+            sprite.color = if flash_phase % 2 == 0 {
+                Color::WHITE
+            } else {
+                CLIMB_STAMINA_LOW_TINT
+            };
+        } else {
+            climb_stamina.low_flash_timer = 0.0;
+            sprite.color = Color::WHITE;
+        }
+
         let is_top_out = state_machine.current == PlayerState::TopOut;
         let is_holding_wall = is_top_out
-            || (actions.grab_held
+            || (state_machine.current == PlayerState::Climb
                 && !dash_state.is_dashing
                 && *wall_contact != WallContact::None
-                && wall_jump_timer.0 <= 0.0);
+                && climb_stamina.current > CLIMB_STAMINA_MIN_TO_CLIMB);
 
         let away_from_wall = match wall_contact {
             WallContact::Left => 1.0,
@@ -64,7 +79,9 @@ pub fn animate_sprite(
         let is_jumping_up = !grounded.0 && velocity.0.y > 0.0;
         let is_falling = !grounded.0 && velocity.0.y <= 0.0;
         let is_fall_fast = jump_state.fast_jump_active || -velocity.0.y >= FALL_FAST_ANIMATION_SPEED;
-        let next_state = if is_top_out {
+        let next_state = if *state == AnimationState::Death {
+            AnimationState::Death
+        } else if is_top_out {
             AnimationState::Climb
         } else if dash_state.is_dashing {
             AnimationState::Dash
@@ -98,6 +115,13 @@ pub fn animate_sprite(
         if *state != next_state {
             *state = next_state;
             match next_state {
+                AnimationState::Death => {
+                    sprite.image = animations.death_texture.clone();
+                    sprite.texture_atlas = Some(TextureAtlas {
+                        layout: animations.death_layout.clone(),
+                        index: 0,
+                    });
+                }
                 AnimationState::Idle => {
                     sprite.image = animations.idle_texture.clone();
                     sprite.texture_atlas = Some(TextureAtlas {
@@ -186,6 +210,7 @@ pub fn animate_sprite(
                     AnimationState::FallFast => 2,
                     AnimationState::Climb => 6,
                     AnimationState::ClimbLookback => 3,
+                    AnimationState::Death => 13,
                 };
 
                 match *state {

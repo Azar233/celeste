@@ -1,13 +1,22 @@
+use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
+use bevy::render::camera::ScalingMode;
 use bevy::window::PrimaryWindow;
 
+use crate::app_state::GameState;
 use crate::level::{
-    ActiveRoom, CollisionKind, CollisionRect, ExitSide, LoadedMap, NamedPoint, RectData,
-    RoomExitData, save_map_to_path_with_backup,
+    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_TILESET_ART_TAG, ExitSide, LoadedMap,
+    NamedPoint, RectData, RoomExitData, TILESET_ART_TAGS, normalize_tileset_art_tag,
+    save_map_to_path_with_backup,
 };
 
 const GRID_SIZE: f32 = 8.0;
 const MIN_RECT_SIZE: f32 = 8.0;
+const DEFAULT_CAMERA_SCALE: f32 = 1.0;
+const DEFAULT_CAMERA_VIEWPORT_HEIGHT: f32 = 180.0;
+const EDITOR_CAMERA_MIN_SCALE: f32 = 0.25;
+const EDITOR_CAMERA_MAX_SCALE: f32 = 4.0;
+const EDITOR_CAMERA_ZOOM_STEP: f32 = 0.9;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EditorTool {
@@ -18,11 +27,12 @@ enum EditorTool {
     SpawnPoint,
     DashCrystal,
     Exit,
+    CompletionZone,
 }
 
 impl EditorTool {
     fn is_rect_tool(self) -> bool {
-        matches!(self, Self::SolidGround | Self::Hazard | Self::Exit)
+        matches!(self, Self::SolidGround | Self::Hazard | Self::Exit | Self::CompletionZone)
     }
 }
 
@@ -34,6 +44,7 @@ enum EditorSelection {
     SpawnPoint(usize),
     DashCrystal(usize),
     Exit(usize),
+    CompletionZone(usize),
 }
 
 #[derive(Resource, Debug)]
@@ -46,6 +57,7 @@ pub struct EditorState {
     next_id: u32,
     dirty: bool,
     last_status: String,
+    current_tileset: String,
 }
 
 impl Default for EditorState {
@@ -59,6 +71,7 @@ impl Default for EditorState {
             next_id: 1,
             dirty: false,
             last_status: "F1: toggle editor".to_string(),
+            current_tileset: DEFAULT_TILESET_ART_TAG.to_string(),
         }
     }
 }
@@ -71,10 +84,12 @@ impl Plugin for EditorPlugin {
             Update,
             (
                 editor_keyboard_shortcuts,
+                editor_camera_zoom,
                 editor_mouse_input,
                 editor_overlay_gizmos,
             )
-                .chain(),
+                .chain()
+                .run_if(in_state(GameState::InGame)),
         );
     }
 }
@@ -84,6 +99,7 @@ fn editor_keyboard_shortcuts(
     mut editor: ResMut<EditorState>,
     mut loaded_map: ResMut<LoadedMap>,
     active_room: Res<ActiveRoom>,
+    mut camera_projection_query: Query<&mut OrthographicProjection, With<Camera2d>>,
 ) {
     if keyboard.just_pressed(KeyCode::F1) {
         editor.enabled = !editor.enabled;
@@ -91,9 +107,13 @@ fn editor_keyboard_shortcuts(
         editor.preview_end = None;
         editor.selected = None;
         editor.last_status = if editor.enabled {
-            "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit".to_string()
+            format!(
+                "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit, 8 complete, T tileset, mouse wheel zoom (current: {})",
+                editor.current_tileset
+            )
         } else {
-            "Editor disabled".to_string()
+            reset_camera_projection(&mut camera_projection_query);
+            "Editor disabled; camera zoom reset".to_string()
         };
         info!("{}", editor.last_status);
     }
@@ -124,6 +144,42 @@ fn editor_keyboard_shortcuts(
     } else if keyboard.just_pressed(KeyCode::Digit7) {
         editor.tool = EditorTool::Exit;
         editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit8) {
+        editor.tool = EditorTool::CompletionZone;
+        editor.selected = None;
+    }
+
+    if keyboard.just_pressed(KeyCode::KeyT) {
+        let next_tileset = next_tileset_art_tag(&editor.current_tileset).to_string();
+        editor.current_tileset = next_tileset.clone();
+
+        if editor.tool == EditorTool::Select {
+            if let Some(EditorSelection::Collision(collision_index)) = editor.selected {
+                if set_collision_tileset(
+                    &mut loaded_map.data,
+                    &active_room.room_id,
+                    collision_index,
+                    &next_tileset,
+                ) {
+                    editor.dirty = true;
+                    editor.last_status = format!(
+                        "Changed selected Collision {collision_index} tileset to {next_tileset}"
+                    );
+                    info!("{}", editor.last_status);
+                } else {
+                    editor.last_status = format!(
+                        "Current tileset: {next_tileset}; selected Collision {collision_index} no longer exists"
+                    );
+                    warn!("{}", editor.last_status);
+                }
+            } else {
+                editor.last_status = format!("Current tileset: {next_tileset}");
+                info!("{}", editor.last_status);
+            }
+        } else {
+            editor.last_status = format!("Current tileset: {next_tileset}");
+            info!("{}", editor.last_status);
+        }
     }
 
     if keyboard.just_pressed(KeyCode::Delete) {
@@ -143,6 +199,12 @@ fn editor_keyboard_shortcuts(
     let save_pressed = keyboard.just_pressed(KeyCode::KeyS)
         && (keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight));
     if save_pressed {
+        let normalized_count = normalize_map_tileset_art_tags(&mut loaded_map.data);
+        if normalized_count > 0 {
+            editor.dirty = true;
+            info!("Normalized {normalized_count} collision art_tag value(s) before save");
+        }
+
         match validate_map_for_save(&loaded_map.data) {
             Ok(()) => match save_map_to_path_with_backup(&loaded_map.path, &loaded_map.data) {
                 Ok(backup_path) => {
@@ -164,6 +226,40 @@ fn editor_keyboard_shortcuts(
                 warn!("{error}");
             }
         }
+    }
+}
+
+fn editor_camera_zoom(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    editor: Res<EditorState>,
+    mut camera_projection_query: Query<&mut OrthographicProjection, With<Camera2d>>,
+) {
+    let scroll_delta: f32 = mouse_wheel_events
+        .read()
+        .map(|event| match event.unit {
+            MouseScrollUnit::Line => event.y,
+            MouseScrollUnit::Pixel => event.y / 16.0,
+        })
+        .sum();
+
+    if !editor.enabled || scroll_delta == 0.0 {
+        return;
+    }
+
+    let Ok(mut projection) = camera_projection_query.get_single_mut() else {
+        return;
+    };
+
+    projection.scale = (projection.scale * EDITOR_CAMERA_ZOOM_STEP.powf(scroll_delta))
+        .clamp(EDITOR_CAMERA_MIN_SCALE, EDITOR_CAMERA_MAX_SCALE);
+}
+
+fn reset_camera_projection(camera_projection_query: &mut Query<&mut OrthographicProjection, With<Camera2d>>) {
+    if let Ok(mut projection) = camera_projection_query.get_single_mut() {
+        projection.scale = DEFAULT_CAMERA_SCALE;
+        projection.scaling_mode = ScalingMode::FixedVertical {
+            viewport_height: DEFAULT_CAMERA_VIEWPORT_HEIGHT,
+        };
     }
 }
 
@@ -201,17 +297,23 @@ fn editor_mouse_input(
                 let rect = rect_from_points(start, snapped_pos);
                 if rect.w >= MIN_RECT_SIZE && rect.h >= MIN_RECT_SIZE {
                     let next_id = editor.next_id;
+                    let current_tileset = editor.current_tileset.clone();
                     let created = add_rect_object(
                         &mut loaded_map.data,
                         &active_room.room_id,
                         editor.tool,
                         rect,
                         next_id,
+                        &current_tileset,
                     );
                     if created {
                         editor.next_id += 1;
                         editor.dirty = true;
-                        editor.last_status = format!("Created {:?}", editor.tool);
+                        editor.last_status = if editor.tool == EditorTool::SolidGround {
+                            format!("Created {:?} with tileset {current_tileset}", editor.tool)
+                        } else {
+                            format!("Created {:?}", editor.tool)
+                        };
                         info!("{}", editor.last_status);
                     }
                 }
@@ -321,6 +423,16 @@ fn editor_overlay_gizmos(
         );
     }
 
+    for (index, completion_zone) in room.completion_zones.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::CompletionZone(index));
+        draw_rect_outline(
+            &mut gizmos,
+            completion_zone.center(),
+            completion_zone.size(),
+            if selected { Color::WHITE } else { Color::srgb(0.35, 1.0, 0.35) },
+        );
+    }
+
     for (index, exit) in room.exits.iter().enumerate() {
         let selected = editor.selected == Some(EditorSelection::Exit(index));
         draw_rect_outline(
@@ -384,6 +496,7 @@ fn add_rect_object(
     tool: EditorTool,
     rect: RectData,
     next_id: u32,
+    current_tileset: &str,
 ) -> bool {
     let Some(room) = room_mut(map, room_id) else {
         return false;
@@ -397,7 +510,7 @@ fn add_rect_object(
                 y: rect.y,
                 w: rect.w,
                 h: rect.h,
-                art_tag: None,
+                art_tag: Some(current_tileset.to_string()),
             });
             true
         }
@@ -419,8 +532,64 @@ fn add_rect_object(
             });
             true
         }
+        EditorTool::CompletionZone => {
+            room.completion_zones.push(rect);
+            true
+        }
         _ => false,
     }
+}
+
+fn next_tileset_art_tag(current: &str) -> &'static str {
+    let normalized_current = normalize_tileset_art_tag(current).unwrap_or(DEFAULT_TILESET_ART_TAG);
+    let current_index = TILESET_ART_TAGS
+        .iter()
+        .position(|tag| *tag == normalized_current)
+        .unwrap_or(0);
+    TILESET_ART_TAGS[(current_index + 1) % TILESET_ART_TAGS.len()]
+}
+
+fn is_valid_tileset_art_tag(art_tag: &str) -> bool {
+    normalize_tileset_art_tag(art_tag).is_some()
+}
+
+fn normalize_map_tileset_art_tags(map: &mut crate::level::MapFile) -> usize {
+    let mut normalized_count = 0;
+
+    for room in &mut map.rooms {
+        for collision in &mut room.collision {
+            let Some(art_tag) = collision.art_tag.as_mut() else {
+                continue;
+            };
+            let Some(normalized_art_tag) = normalize_tileset_art_tag(art_tag) else {
+                continue;
+            };
+
+            if art_tag != normalized_art_tag {
+                *art_tag = normalized_art_tag.to_string();
+                normalized_count += 1;
+            }
+        }
+    }
+
+    normalized_count
+}
+
+fn set_collision_tileset(
+    map: &mut crate::level::MapFile,
+    room_id: &str,
+    collision_index: usize,
+    art_tag: &str,
+) -> bool {
+    let Some(room) = room_mut(map, room_id) else {
+        return false;
+    };
+    let Some(collision) = room.collision.get_mut(collision_index) else {
+        return false;
+    };
+
+    collision.art_tag = Some(art_tag.to_string());
+    true
 }
 
 fn handle_selected_exit_shortcuts(
@@ -642,6 +811,10 @@ fn delete_selection(
             room.exits.remove(index);
             true
         }
+        EditorSelection::CompletionZone(index) if index < room.completion_zones.len() => {
+            room.completion_zones.remove(index);
+            true
+        }
         _ => false,
     }
 }
@@ -656,6 +829,12 @@ fn pick_object(
     for (index, exit) in room.exits.iter().enumerate().rev() {
         if point_in_rect(position, Vec2::new(exit.x, exit.y), Vec2::new(exit.w, exit.h)) {
             return Some(EditorSelection::Exit(index));
+        }
+    }
+
+    for (index, completion_zone) in room.completion_zones.iter().enumerate().rev() {
+        if point_in_rect(position, completion_zone.center(), completion_zone.size()) {
+            return Some(EditorSelection::CompletionZone(index));
         }
     }
 
@@ -841,10 +1020,25 @@ fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {
             if collision.w <= 0.0 || collision.h <= 0.0 {
                 return Err(format!("room '{}' has invalid collision rectangle", room.id));
             }
+            if let Some(art_tag) = collision.art_tag.as_deref() {
+                if !is_valid_tileset_art_tag(art_tag) {
+                    return Err(format!(
+                        "room '{}' has collision with invalid art_tag '{}'; expected a known tileset or supported legacy alias for one of: {}",
+                        room.id,
+                        art_tag,
+                        TILESET_ART_TAGS.join(", ")
+                    ));
+                }
+            }
         }
         for hazard in &room.hazards {
             if hazard.w <= 0.0 || hazard.h <= 0.0 {
                 return Err(format!("room '{}' has invalid hazard rectangle", room.id));
+            }
+        }
+        for completion_zone in &room.completion_zones {
+            if completion_zone.w <= 0.0 || completion_zone.h <= 0.0 {
+                return Err(format!("room '{}' has invalid completion zone rectangle", room.id));
             }
         }
         for exit in &room.exits {

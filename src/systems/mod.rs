@@ -7,6 +7,7 @@ pub mod weather;
 
 use bevy::prelude::*;
 
+use crate::app_state::GameState;
 use crate::components::FreezeFrameState;
 use crate::editor::editor_inactive;
 use crate::menu::MenuOpen;
@@ -15,11 +16,13 @@ pub use animation::animate_sprite;
 pub use effects::{emit_dash_trail, update_dash_trail};
 pub use hair::update_hair;
 pub use level::{
-    camera_follow, handle_hazard_respawn, handle_room_transitions, update_checkpoint_respawn,
-    update_dash_crystals,
+    CompletionState, DeathSequence, RoomTransitionCooldown, camera_follow, completion_inactive,
+    death_sequence_inactive, handle_completion_overlay_input, handle_completion_zones,
+    handle_hazard_respawn, handle_room_transitions, reset_completion_state, reset_death_sequence,
+    update_checkpoint_respawn, update_dash_crystals, update_death_sequence,
 };
 pub use player::{
-    apply_physics, cache_player_input, player_input, player_movement, tick_timers,
+    apply_physics, cache_player_input, player_input, player_movement, tick_timers, trigger_fall_death,
     update_crouch_state, update_player_state_machine,
 };
 pub use weather::update_weather_material;
@@ -47,8 +50,17 @@ pub struct GameplayPlugin;
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(FreezeFrameState::default())
-            .add_systems(Update, tick_freeze_frames)
-            .add_systems(Update, cache_player_input.run_if(gameplay_active_outside_editor))
+            .insert_resource(RoomTransitionCooldown::default())
+            .insert_resource(CompletionState::default())
+            .insert_resource(DeathSequence::default())
+            .add_systems(OnEnter(GameState::InGame), (reset_completion_state, reset_death_sequence))
+            .add_systems(Update, tick_freeze_frames.run_if(in_state(GameState::InGame)))
+            .add_systems(
+                Update,
+                cache_player_input
+                    .run_if(in_state(GameState::InGame))
+                    .run_if(gameplay_active_outside_editor),
+            )
             .add_systems(
                 FixedUpdate,
                 (
@@ -58,26 +70,51 @@ impl Plugin for GameplayPlugin {
                     update_crouch_state,
                     apply_physics,
                     player_movement,
+                    trigger_fall_death,
                     update_dash_crystals,
                     handle_room_transitions,
                     handle_hazard_respawn,
                     update_checkpoint_respawn,
+                    handle_completion_zones,
                 )
                     .chain()
-                    .run_if(gameplay_active_outside_editor),
+                    .run_if(in_state(GameState::InGame))
+                    .run_if(gameplay_active_outside_editor)
+                    .run_if(completion_inactive)
+                    .run_if(death_sequence_inactive),
             )
             .add_systems(
-            Update,
-            (
-                emit_dash_trail,
-                update_dash_trail,
-                animate_sprite,
-                update_hair,
-                camera_follow,
-                update_weather_material,
+                Update,
+                update_death_sequence
+                    .run_if(in_state(GameState::InGame))
+                    .run_if(completion_inactive),
             )
-                .chain()
-                .run_if(gameplay_active),
-        );
+            .add_systems(
+                Update,
+                handle_completion_overlay_input.run_if(in_state(GameState::InGame)),
+            )
+            .add_systems(
+                Update,
+                (
+                    emit_dash_trail,
+                    update_dash_trail,
+                    animate_sprite,
+                    camera_follow,
+                    update_weather_material,
+                )
+                    .chain()
+                    .run_if(in_state(GameState::InGame))
+                    .run_if(gameplay_active)
+                    .run_if(completion_inactive)
+                    .run_if(death_sequence_inactive),
+            )
+            .add_systems(
+                Update,
+                update_hair
+                    .run_if(in_state(GameState::InGame))
+                    .run_if(gameplay_active)
+                    .run_if(completion_inactive)
+                    .after(update_death_sequence),
+            );
     }
 }

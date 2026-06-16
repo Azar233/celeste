@@ -5,6 +5,31 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_MAP_PATH: &str = "assets/maps/chapter_01.json";
+pub const DEFAULT_TILESET_ART_TAG: &str = "dirt";
+pub const TILESET_ART_TAGS: [&str; 5] = ["dirt", "grass", "snow", "templeA", "templeB"];
+
+pub fn normalize_tileset_art_tag(art_tag: &str) -> Option<&'static str> {
+    let tag = art_tag.trim();
+
+    if TILESET_ART_TAGS.contains(&tag) {
+        return TILESET_ART_TAGS.iter().copied().find(|valid_tag| *valid_tag == tag);
+    }
+
+    let lowercase_tag = tag.to_ascii_lowercase();
+    if lowercase_tag.starts_with("snow") {
+        Some("snow")
+    } else if lowercase_tag.starts_with("temple_a") || lowercase_tag.starts_with("templea") {
+        Some("templeA")
+    } else if lowercase_tag.starts_with("temple_b") || lowercase_tag.starts_with("templeb") {
+        Some("templeB")
+    } else if lowercase_tag.starts_with("grass") {
+        Some("grass")
+    } else if lowercase_tag.starts_with("dirt") {
+        Some("dirt")
+    } else {
+        None
+    }
+}
 
 #[allow(dead_code)]
 #[derive(Resource, Clone, Debug)]
@@ -45,6 +70,8 @@ pub struct RoomData {
     pub dashcrystals: Vec<NamedPoint>,
     #[serde(default)]
     pub exits: Vec<RoomExitData>,
+    #[serde(default)]
+    pub completion_zones: Vec<RectData>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

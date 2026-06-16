@@ -44,11 +44,16 @@ pub fn update_hair(
             Color::srgb(0.3, 0.7, 0.95)
         };
 
-        let frame_index = sprite
+        let raw_frame_index = sprite
             .texture_atlas
             .as_ref()
             .map(|atlas| atlas.index)
             .unwrap_or(0);
+        let frame_index = if *anim_state == AnimationState::Death {
+            raw_frame_index.saturating_sub(1)
+        } else {
+            raw_frame_index
+        };
 
         let hair_anim_offset = match anim_state {
             AnimationState::Idle => match frame_index {
@@ -69,6 +74,12 @@ pub fn update_hair(
             | AnimationState::FallSlow
             | AnimationState::FallFast => Vec2::new(0.0, -2.0),
             AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
+            AnimationState::Death => match frame_index {
+                0 | 1 => Vec2::new(0.0, -2.0),
+                2 => Vec2::new(-3.0, -1.0),
+                3 | 4 => Vec2::new(1.0, -1.0),
+                _ => Vec2::ZERO,
+            },
         };
 
         let bangs_anim_offset = match anim_state {
@@ -85,6 +96,12 @@ pub fn update_hair(
             | AnimationState::FallSlow
             | AnimationState::FallFast => Vec2::new(0.0, 0.0),
             AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
+            AnimationState::Death => match frame_index {
+                0 | 1 => Vec2::ZERO,
+                2 => Vec2::new(-3.0, 1.0),
+                3 | 4 => Vec2::new(1.0, 0.0),
+                _ => Vec2::ZERO,
+            },
         };
 
         let root_pos = player_transform.translation.truncate()
