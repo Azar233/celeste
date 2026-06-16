@@ -205,6 +205,16 @@ pub fn death_sequence_inactive(death_sequence: Res<DeathSequence>) -> bool {
     !death_sequence.active()
 }
 
+fn reset_dash_crystal(sprite: &mut Sprite, crystal: &mut DashCrystal) {
+    crystal.respawn_timer = 0.0;
+    crystal.animation_timer = 0.0;
+    crystal.frame_index = 0;
+
+    if let Some(first_frame) = crystal.active_frames.first() {
+        sprite.image = first_frame.clone();
+    }
+}
+
 pub fn reset_death_sequence(mut death_sequence: ResMut<DeathSequence>) {
     *death_sequence = DeathSequence::default();
 }
@@ -306,6 +316,7 @@ pub fn update_death_sequence(
     >,
     mut panel_query: Query<(Entity, &mut Node, &DeathWipePanel)>,
     mut visibility_query: Query<&mut Visibility>,
+    mut dash_crystals: Query<(&mut Sprite, &mut DashCrystal), (With<DashCrystal>, Without<Player>)>,
 ) {
     let dt = time.delta_secs();
 
@@ -476,6 +487,10 @@ pub fn update_death_sequence(
                 &mut actions,
                 &mut dash_trail,
             );
+            for (mut crystal_sprite, mut crystal) in &mut dash_crystals {
+                reset_dash_crystal(&mut crystal_sprite, &mut crystal);
+            }
+
             *animation_state = AnimationState::Idle;
             animation_timer.0 = Timer::from_seconds(0.1, TimerMode::Repeating);
             sprite.image = animations.idle_texture.clone();
@@ -593,10 +608,8 @@ pub fn update_dash_crystals(
     for (crystal_transform, mut sprite, mut crystal) in &mut crystals {
         if crystal.respawn_timer > 0.0 {
             crystal.respawn_timer = (crystal.respawn_timer - dt).max(0.0);
-            if crystal.respawn_timer <= 0.0 && !crystal.active_frames.is_empty() {
-                crystal.frame_index = 0;
-                crystal.animation_timer = 0.0;
-                sprite.image = crystal.active_frames[0].clone();
+            if crystal.respawn_timer <= 0.0 {
+                reset_dash_crystal(&mut sprite, &mut crystal);
             }
             continue;
         }
