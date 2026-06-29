@@ -29,11 +29,12 @@ enum EditorTool {
     DashCrystal,
     Exit,
     CompletionZone,
+    Grass,
 }
 
 impl EditorTool {
     fn is_rect_tool(self) -> bool {
-        matches!(self, Self::SolidGround | Self::Hazard | Self::Exit | Self::CompletionZone)
+        matches!(self, Self::SolidGround | Self::Hazard | Self::Exit | Self::CompletionZone | Self::Grass)
     }
 }
 
@@ -46,6 +47,7 @@ enum EditorSelection {
     DashCrystal(usize),
     Exit(usize),
     CompletionZone(usize),
+    Grass(usize),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -120,7 +122,7 @@ fn editor_keyboard_shortcuts(
         editor.selected = None;
         editor.last_status = if editor.enabled {
             format!(
-                "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit, 8 complete, T tileset, mouse wheel zoom (current: {})",
+                "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit, 8 complete, 9 grass, T tileset, mouse wheel zoom (current: {})",
                 editor.current_tileset
             )
         } else {
@@ -165,6 +167,10 @@ fn editor_keyboard_shortcuts(
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit8) {
         editor.tool = EditorTool::CompletionZone;
+        editor.move_drag = None;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit9) {
+        editor.tool = EditorTool::Grass;
         editor.move_drag = None;
         editor.selected = None;
     }
@@ -501,6 +507,16 @@ fn editor_overlay_gizmos(
         );
     }
 
+    for (index, grass_rect) in room.grasses.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::Grass(index));
+        draw_rect_outline(
+            &mut gizmos,
+            grass_rect.center(),
+            grass_rect.size(),
+            if selected { Color::WHITE } else { Color::srgb(0.3, 0.85, 0.2) },
+        );
+    }
+
     for (index, completion_zone) in room.completion_zones.iter().enumerate() {
         let selected = editor.selected == Some(EditorSelection::CompletionZone(index));
         draw_rect_outline(
@@ -622,6 +638,10 @@ fn add_rect_object(
             room.completion_zones.push(rect);
             true
         }
+        EditorTool::Grass => {
+            room.grasses.push(rect);
+            true
+        }
         _ => false,
     }
 }
@@ -705,6 +725,7 @@ fn selection_position(
             .map(|dashcrystal| Vec2::new(dashcrystal.x, dashcrystal.y)),
         EditorSelection::Exit(index) => room.exits.get(index).map(|exit| Vec2::new(exit.x, exit.y)),
         EditorSelection::CompletionZone(index) => room.completion_zones.get(index).map(RectData::center),
+        EditorSelection::Grass(index) => room.grasses.get(index).map(RectData::center),
     }
 }
 
@@ -767,6 +788,13 @@ fn move_selection_to(
             };
             completion_zone.x = target_position.x;
             completion_zone.y = target_position.y;
+        }
+        EditorSelection::Grass(index) => {
+            let Some(grass) = room.grasses.get_mut(index) else {
+                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+            };
+            grass.x = target_position.x;
+            grass.y = target_position.y;
         }
     }
 
@@ -996,6 +1024,10 @@ fn delete_selection(
             room.completion_zones.remove(index);
             Ok(())
         }
+        EditorSelection::Grass(index) if index < room.grasses.len() => {
+            room.grasses.remove(index);
+            Ok(())
+        }
         _ => Err(format!("Cannot delete {selection:?}: selected object no longer exists")),
     }
 }
@@ -1060,6 +1092,12 @@ fn pick_object(
     for (index, hazard) in room.hazards.iter().enumerate().rev() {
         if point_in_rect(position, hazard.center(), hazard.size()) {
             return Some(EditorSelection::Hazard(index));
+        }
+    }
+
+    for (index, grass) in room.grasses.iter().enumerate().rev() {
+        if point_in_rect(position, grass.center(), grass.size()) {
+            return Some(EditorSelection::Grass(index));
         }
     }
 
