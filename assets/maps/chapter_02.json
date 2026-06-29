@@ -25,55 +25,184 @@
       ],
       "collision": [
         {
-          "kind": "solid_ground",
-          "x": -114.0,
-          "y": -72.0,
-          "w": 92.0,
-          "h": 24.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": -2.0,
-          "y": -50.0,
-          "w": 68.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 112.0,
-          "y": -66.0,
-          "w": 88.0,
-          "h": 22.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": -48.0,
-          "y": -12.0,
-          "w": 16.0,
-          "h": 96.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 54.0,
-          "y": -2.0,
-          "w": 16.0,
-          "h": 104.0,
-          "art_tag": "snow"
-        },
-        {
           "kind": "camera_zone",
           "x": 0.0,
           "y": 0.0,
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -136.0,
+          "y": -72.0,
+          "w": 48.0,
+          "h": 32.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -88.0,
+          "y": -84.0,
+          "w": 48.0,
+          "h": 8.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -48.0,
+          "y": -60.0,
+          "w": 32.0,
+          "h": 56.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -16.0,
+          "y": -76.0,
+          "w": 32.0,
+          "h": 24.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 12.0,
+          "y": -76.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 40.0,
+          "y": -56.0,
+          "w": 32.0,
+          "h": 64.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 68.0,
+          "y": -72.0,
+          "w": 24.0,
+          "h": 32.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 88.0,
+          "y": -80.0,
+          "w": 16.0,
+          "h": 16.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 40.0,
+          "y": -8.0,
+          "w": 32.0,
+          "h": 32.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -156.0,
+          "y": -24.0,
+          "w": 8.0,
+          "h": 64.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -152.0,
+          "y": 36.0,
+          "w": 16.0,
+          "h": 56.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -140.0,
+          "y": 76.0,
+          "w": 40.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -116.0,
+          "y": 60.0,
+          "w": 8.0,
+          "h": 56.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -92.0,
+          "y": 36.0,
+          "w": 40.0,
+          "h": 8.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -76.0,
+          "y": 64.0,
+          "w": 8.0,
+          "h": 48.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -80.0,
+          "y": 80.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -28.0,
+          "y": 84.0,
+          "w": 40.0,
+          "h": 8.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 0.0,
+          "y": -92.0,
+          "w": 320.0,
+          "h": 8.0,
+          "art_tag": "dirt"
         }
       ],
-      "hazards": [],
+      "hazards": [
+        {
+          "x": -88.0,
+          "y": -76.0,
+          "w": 48.0,
+          "h": 8.0
+        },
+        {
+          "x": -4.0,
+          "y": -60.0,
+          "w": 56.0,
+          "h": 8.0
+        },
+        {
+          "x": 68.0,
+          "y": -52.0,
+          "w": 24.0,
+          "h": 8.0
+        },
+        {
+          "x": 88.0,
+          "y": -68.0,
+          "w": 16.0,
+          "h": 8.0
+        }
+      ],
       "checkpoints": [
         {
           "id": "room_00_cp",
@@ -88,14 +217,15 @@
           "side": "right",
           "target_room": "room_01",
           "target_spawn": "left_entry",
-          "x": 154.0,
-          "y": -22.0,
+          "x": 156.0,
+          "y": -24.0,
           "w": 12.0,
           "h": 116.0,
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_01",
@@ -207,7 +337,8 @@
           "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_02",
@@ -327,7 +458,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_03",
@@ -439,7 +571,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_04",
@@ -555,7 +688,8 @@
           "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_05",
@@ -705,7 +839,8 @@
           "w": 56.0,
           "h": 64.0
         }
-      ]
+      ],
+      "grasses": []
     }
   ]
 }
