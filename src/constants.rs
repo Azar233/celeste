@@ -86,3 +86,8 @@ pub const DASH_CRYSTAL_SIZE: Vec2 = Vec2::new(8.0, 8.0);
 pub const DASH_CRYSTAL_ANIMATION_INTERVAL: f32 = 0.1;
 pub const DASH_CRYSTAL_RESPAWN_TIME: f32 = 5.0;
 pub const DASH_CRYSTAL_Z: f32 = 1.0;
+
+pub const GRASS_Z: f32 = 0.5;
+pub const GRASS_TILE_SIZE: f32 = 8.0;
+pub const GRASS_ANIMATION_INTERVAL: f32 = 0.15;
+pub const GRASS_FRAME_COUNT: usize = 4;
