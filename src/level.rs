@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_MAP_PATH: &str = "assets/maps/chapter_01.json";
 pub const DEFAULT_TILESET_ART_TAG: &str = "dirt";
-pub const TILESET_ART_TAGS: [&str; 5] = ["dirt", "grass", "snow", "templeA", "templeB"];
+pub const TILESET_ART_TAGS: [&str; 6] = ["dirt", "grass", "snow", "templeA", "templeB", "girder"];
 
 pub fn normalize_tileset_art_tag(art_tag: &str) -> Option<&'static str> {
     let tag = art_tag.trim();
@@ -29,6 +29,8 @@ pub fn normalize_tileset_art_tag(art_tag: &str) -> Option<&'static str> {
         Some("grass")
     } else if lowercase_tag.starts_with("dirt") {
         Some("dirt")
+    } else if lowercase_tag.starts_with("girder") {
+        Some("girder")
     } else {
         None
     }
@@ -77,6 +79,8 @@ pub struct RoomData {
     pub exits: Vec<RoomExitData>,
     #[serde(default)]
     pub completion_zones: Vec<RectData>,
+    #[serde(default)]
+    pub grasses: Vec<RectData>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

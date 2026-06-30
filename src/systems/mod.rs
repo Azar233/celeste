@@ -1,5 +1,6 @@
 pub mod animation;
 pub mod effects;
+pub mod grass;
 pub mod hair;
 pub mod level;
 pub mod player;
@@ -14,6 +15,7 @@ use crate::menu::MenuOpen;
 
 pub use animation::animate_sprite;
 pub use effects::{emit_dash_trail, update_dash_trail};
+pub use grass::animate_grass;
 pub use hair::update_hair;
 pub use level::{
     CompletionState, DeathSequence, RoomTransitionCooldown, camera_follow, completion_inactive,
@@ -106,6 +108,7 @@ impl Plugin for GameplayPlugin {
                     emit_dash_trail,
                     update_dash_trail,
                     animate_sprite,
+                    animate_grass,
                     camera_follow,
                     update_weather_material,
                 )

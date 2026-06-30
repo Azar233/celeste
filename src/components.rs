@@ -270,6 +270,16 @@ impl Material2d for HairMaterial {
 }
 
 #[derive(Component)]
+pub struct Grass;
+
+#[derive(Component)]
+pub struct GrassAnimation {
+    pub timer: f32,
+    pub frame_index: usize,
+    pub frames: Vec<Handle<Image>>,
+}
+
+#[derive(Component)]
 pub struct WeatherOverlay;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]

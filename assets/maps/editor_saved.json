@@ -251,7 +251,27 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": [
+        {
+          "x": -92.0,
+          "y": -36.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": -88.0,
+          "y": -32.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": -80.0,
+          "y": -36.0,
+          "w": 16.0,
+          "h": 8.0
+        }
+      ]
     },
     {
       "id": "room_01",
@@ -467,7 +487,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_02",
@@ -571,7 +592,8 @@
           "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_03",
@@ -752,7 +774,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_04",
@@ -893,7 +916,8 @@
           "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_05",
@@ -1003,7 +1027,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_06",
@@ -1144,7 +1169,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     }
   ]
 }

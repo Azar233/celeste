@@ -18,52 +18,12 @@
           "y": -42.0
         },
         {
-          "id": "from_room_01",
-          "x": 132.0,
-          "y": -38.0
+          "id": "editor_16",
+          "x": 48.0,
+          "y": 68.0
         }
       ],
       "collision": [
-        {
-          "kind": "solid_ground",
-          "x": -114.0,
-          "y": -72.0,
-          "w": 92.0,
-          "h": 24.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": -2.0,
-          "y": -50.0,
-          "w": 68.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 112.0,
-          "y": -66.0,
-          "w": 88.0,
-          "h": 22.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": -48.0,
-          "y": -12.0,
-          "w": 16.0,
-          "h": 96.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 54.0,
-          "y": -2.0,
-          "w": 16.0,
-          "h": 104.0,
-          "art_tag": "snow"
-        },
         {
           "kind": "camera_zone",
           "x": 0.0,
@@ -71,31 +31,256 @@
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": -136.0,
+          "y": -72.0,
+          "w": 48.0,
+          "h": 32.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -88.0,
+          "y": -84.0,
+          "w": 48.0,
+          "h": 8.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -48.0,
+          "y": -60.0,
+          "w": 32.0,
+          "h": 56.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -16.0,
+          "y": -76.0,
+          "w": 32.0,
+          "h": 24.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 12.0,
+          "y": -76.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 40.0,
+          "y": -56.0,
+          "w": 32.0,
+          "h": 64.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 68.0,
+          "y": -72.0,
+          "w": 24.0,
+          "h": 32.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 88.0,
+          "y": -80.0,
+          "w": 16.0,
+          "h": 16.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 40.0,
+          "y": -8.0,
+          "w": 32.0,
+          "h": 32.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -156.0,
+          "y": -24.0,
+          "w": 8.0,
+          "h": 64.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -152.0,
+          "y": 36.0,
+          "w": 16.0,
+          "h": 56.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -140.0,
+          "y": 76.0,
+          "w": 40.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -116.0,
+          "y": 60.0,
+          "w": 8.0,
+          "h": 56.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -92.0,
+          "y": 36.0,
+          "w": 40.0,
+          "h": 8.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -76.0,
+          "y": 64.0,
+          "w": 8.0,
+          "h": 48.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -80.0,
+          "y": 80.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -28.0,
+          "y": 84.0,
+          "w": 40.0,
+          "h": 8.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -32.0,
+          "y": -92.0,
+          "w": 256.0,
+          "h": 8.0,
+          "art_tag": "dirt"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 136.0,
+          "y": 80.0,
+          "w": 48.0,
+          "h": 16.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 148.0,
+          "y": 40.0,
+          "w": 24.0,
+          "h": 64.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 12.0,
+          "y": 84.0,
+          "w": 40.0,
+          "h": 8.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -8.0,
+          "y": 92.0,
+          "w": 80.0,
+          "h": 8.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 136.0,
+          "y": 92.0,
+          "w": 48.0,
+          "h": 8.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": -104.0,
+          "y": 92.0,
+          "w": 112.0,
+          "h": 8.0,
+          "art_tag": "snow"
         }
       ],
-      "hazards": [],
+      "hazards": [
+        {
+          "x": -88.0,
+          "y": -76.0,
+          "w": 48.0,
+          "h": 8.0
+        },
+        {
+          "x": -4.0,
+          "y": -60.0,
+          "w": 56.0,
+          "h": 8.0
+        },
+        {
+          "x": 68.0,
+          "y": -52.0,
+          "w": 24.0,
+          "h": 8.0
+        },
+        {
+          "x": 88.0,
+          "y": -68.0,
+          "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 128.0,
+          "y": -104.0,
+          "w": 64.0,
+          "h": 8.0
+        }
+      ],
       "checkpoints": [
         {
           "id": "room_00_cp",
-          "x": -112.0,
-          "y": -42.0
+          "x": -132.0,
+          "y": -40.0
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
-          "id": "room_00_to_01",
+          "id": "editor_exit_7",
           "side": "right",
           "target_room": "room_01",
           "target_spawn": "left_entry",
-          "x": 154.0,
-          "y": -22.0,
-          "w": 12.0,
-          "h": 116.0,
-          "preserve_momentum": true
+          "x": 68.0,
+          "y": 84.0,
+          "w": 120.0,
+          "h": 8.0,
+          "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_01",
@@ -109,56 +294,21 @@
       "spawn_points": [
         {
           "id": "left_entry",
-          "x": 184.0,
-          "y": -38.0
+          "x": 240.0,
+          "y": -56.0
         },
         {
           "id": "from_room_02",
-          "x": 342.0,
-          "y": 70.0
+          "x": 452.0,
+          "y": 76.0
+        },
+        {
+          "id": "editor_69",
+          "x": 476.0,
+          "y": -60.0
         }
       ],
       "collision": [
-        {
-          "kind": "solid_ground",
-          "x": 204.0,
-          "y": -68.0,
-          "w": 82.0,
-          "h": 22.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 270.0,
-          "y": -8.0,
-          "w": 16.0,
-          "h": 108.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 384.0,
-          "y": 16.0,
-          "w": 16.0,
-          "h": 120.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 326.0,
-          "y": 54.0,
-          "w": 74.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 456.0,
-          "y": 28.0,
-          "w": 78.0,
-          "h": 18.0,
-          "art_tag": "snow"
-        },
         {
           "kind": "camera_zone",
           "x": 320.0,
@@ -166,48 +316,155 @@
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 172.0,
+          "y": -84.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 236.0,
+          "y": -84.0,
+          "w": 32.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 264.0,
+          "y": -84.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 284.0,
+          "y": -80.0,
+          "w": 16.0,
+          "h": 32.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 340.0,
+          "y": -60.0,
+          "w": 40.0,
+          "h": 72.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 340.0,
+          "y": 68.0,
+          "w": 40.0,
+          "h": 72.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 416.0,
+          "y": -84.0,
+          "w": 112.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 480.0,
+          "y": -84.0,
+          "w": 16.0,
+          "h": 24.0,
+          "art_tag": "snow"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 424.0,
+          "y": 32.0,
+          "w": 16.0,
+          "h": 128.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 472.0,
+          "y": 32.0,
+          "w": 16.0,
+          "h": 128.0,
+          "art_tag": "girder"
         }
       ],
-      "hazards": [],
+      "hazards": [
+        {
+          "x": 340.0,
+          "y": -20.0,
+          "w": 40.0,
+          "h": 8.0
+        },
+        {
+          "x": 340.0,
+          "y": 28.0,
+          "w": 40.0,
+          "h": 8.0
+        }
+      ],
       "checkpoints": [
         {
           "id": "room_01_cp",
-          "x": 206.0,
-          "y": -38.0
+          "x": 240.0,
+          "y": -56.0
         }
       ],
-      "dashcrystals": [
+      "dashcrystals": [],
+      "springs": [
         {
-          "id": "room_01_dash",
-          "x": 244.0,
-          "y": -24.0
+          "id": "editor_spring_19",
+          "x": 284.0,
+          "y": -62.0,
+          "direction": "up"
         }
       ],
       "exits": [
-        {
-          "id": "room_01_to_00",
-          "side": "left",
-          "target_room": "room_00",
-          "target_spawn": "from_room_01",
-          "x": 166.0,
-          "y": -22.0,
-          "w": 12.0,
-          "h": 116.0,
-          "preserve_momentum": true
-        },
         {
           "id": "room_01_to_02",
           "side": "top",
           "target_room": "room_02",
           "target_spawn": "bottom_entry",
-          "x": 342.0,
-          "y": 86.0,
+          "x": 456.0,
+          "y": 84.0,
           "w": 80.0,
           "h": 12.0,
           "preserve_momentum": false
+        },
+        {
+          "id": "editor_exit_8",
+          "side": "right",
+          "target_room": "room_00",
+          "target_spawn": "editor_16",
+          "x": 208.0,
+          "y": -84.0,
+          "w": 72.0,
+          "h": 16.0,
+          "preserve_momentum": false
+        },
+        {
+          "id": "editor_exit_42",
+          "side": "right",
+          "target_room": "room_05",
+          "target_spawn": "bottom_entry",
+          "x": 496.0,
+          "y": -52.0,
+          "w": 16.0,
+          "h": 40.0,
+          "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_02",
@@ -221,54 +478,22 @@
       "spawn_points": [
         {
           "id": "bottom_entry",
-          "x": 344.0,
-          "y": 120.0
+          "x": 220.0,
+          "y": 108.0
         },
         {
           "id": "from_room_03",
-          "x": 456.0,
-          "y": 174.0
+          "x": 460.0,
+          "y": 124.0
         }
       ],
       "collision": [
-        {
-          "kind": "solid_ground",
-          "x": 344.0,
-          "y": 92.0,
-          "w": 86.0,
-          "h": 18.0,
-          "art_tag": "templeA"
-        },
-        {
-          "kind": "one_way_platform",
-          "x": 276.0,
-          "y": 138.0,
-          "w": 64.0,
-          "h": 8.0,
-          "art_tag": "templeA"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 386.0,
-          "y": 148.0,
-          "w": 16.0,
-          "h": 96.0,
-          "art_tag": "templeA"
-        },
         {
           "kind": "wall_surface",
           "x": 488.0,
           "y": 172.0,
           "w": 16.0,
           "h": 104.0,
-          "art_tag": "templeA"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 456.0,
-          "y": 146.0,
-          "w": 72.0,
-          "h": 18.0,
           "art_tag": "templeA"
         },
         {
@@ -286,31 +511,240 @@
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 168.0,
+          "y": 88.0,
+          "w": 32.0,
+          "h": 16.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 164.0,
+          "y": 104.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 160.0,
+          "y": 160.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 160.0,
+          "y": 240.0,
+          "w": 16.0,
+          "h": 64.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 228.0,
+          "y": 88.0,
+          "w": 40.0,
+          "h": 16.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 228.0,
+          "y": 232.0,
+          "w": 40.0,
+          "h": 16.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 312.0,
+          "y": 208.0,
+          "w": 32.0,
+          "h": 16.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 384.0,
+          "y": 156.0,
+          "w": 48.0,
+          "h": 24.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 464.0,
+          "y": 100.0,
+          "w": 64.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 276.0,
+          "y": 88.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 296.0,
+          "y": 124.0,
+          "w": 16.0,
+          "h": 8.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 292.0,
+          "y": 108.0,
+          "w": 8.0,
+          "h": 24.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 300.0,
+          "y": 100.0,
+          "w": 8.0,
+          "h": 40.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 288.0,
+          "y": 88.0,
+          "w": 16.0,
+          "h": 16.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 292.0,
+          "y": 100.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 320.0,
+          "y": 112.0,
+          "w": 16.0,
+          "h": 64.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 308.0,
+          "y": 100.0,
+          "w": 8.0,
+          "h": 40.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 308.0,
+          "y": 124.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 308.0,
+          "y": 136.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": "templeA"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 316.0,
+          "y": 156.0,
+          "w": 24.0,
+          "h": 8.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 308.0,
+          "y": 148.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 324.0,
+          "y": 148.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": "girder"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 316.0,
+          "y": 148.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": "templeA"
         }
       ],
-      "hazards": [],
+      "hazards": [
+        {
+          "x": 408.0,
+          "y": 64.0,
+          "w": 152.0,
+          "h": 16.0
+        },
+        {
+          "x": 280.0,
+          "y": 100.0,
+          "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 296.0,
+          "y": 132.0,
+          "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 316.0,
+          "y": 164.0,
+          "w": 24.0,
+          "h": 8.0
+        }
+      ],
       "checkpoints": [
         {
           "id": "room_02_cp",
-          "x": 344.0,
-          "y": 120.0
-        }
-      ],
-      "dashcrystals": [
+          "x": 220.0,
+          "y": 108.0
+        },
         {
-          "id": "room_02_dash",
-          "x": 410.0,
-          "y": 176.0
+          "id": "editor_118",
+          "x": 460.0,
+          "y": 124.0
         }
       ],
+      "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_02_to_01",
           "side": "bottom",
           "target_room": "room_01",
           "target_spawn": "from_room_02",
-          "x": 342.0,
-          "y": 94.0,
+          "x": 208.0,
+          "y": 88.0,
           "w": 80.0,
           "h": 12.0,
           "preserve_momentum": false
@@ -320,14 +754,15 @@
           "side": "right",
           "target_room": "room_03",
           "target_spawn": "left_entry",
-          "x": 474.0,
-          "y": 174.0,
+          "x": 480.0,
+          "y": 116.0,
           "w": 12.0,
           "h": 112.0,
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_03",
@@ -341,56 +776,16 @@
       "spawn_points": [
         {
           "id": "left_entry",
-          "x": 504.0,
-          "y": 174.0
+          "x": 508.0,
+          "y": 116.0
         },
         {
           "id": "from_room_04",
-          "x": 760.0,
-          "y": 218.0
+          "x": 776.0,
+          "y": 148.0
         }
       ],
       "collision": [
-        {
-          "kind": "solid_ground",
-          "x": 524.0,
-          "y": 144.0,
-          "w": 80.0,
-          "h": 18.0,
-          "art_tag": "templeA"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 632.0,
-          "y": 128.0,
-          "w": 64.0,
-          "h": 18.0,
-          "art_tag": "templeA"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 748.0,
-          "y": 188.0,
-          "w": 84.0,
-          "h": 18.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "one_way_platform",
-          "x": 622.0,
-          "y": 190.0,
-          "w": 70.0,
-          "h": 8.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 680.0,
-          "y": 182.0,
-          "w": 16.0,
-          "h": 108.0,
-          "art_tag": "templeB"
-        },
         {
           "kind": "camera_zone",
           "x": 640.0,
@@ -398,21 +793,221 @@
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 508.0,
+          "y": 92.0,
+          "w": 72.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 560.0,
+          "y": 152.0,
+          "w": 16.0,
+          "h": 96.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 488.0,
+          "y": 220.0,
+          "w": 16.0,
+          "h": 88.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 532.0,
+          "y": 272.0,
+          "w": 120.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 560.0,
+          "y": 212.0,
+          "w": 16.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 580.0,
+          "y": 164.0,
+          "w": 24.0,
+          "h": 120.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 620.0,
+          "y": 88.0,
+          "w": 152.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 648.0,
+          "y": 272.0,
+          "w": 112.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 608.0,
+          "y": 120.0,
+          "w": 32.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 672.0,
+          "y": 120.0,
+          "w": 32.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 752.0,
+          "y": 256.0,
+          "w": 96.0,
+          "h": 48.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 668.0,
+          "y": 248.0,
+          "w": 72.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 740.0,
+          "y": 120.0,
+          "w": 104.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 752.0,
+          "y": 88.0,
+          "w": 112.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 800.0,
+          "y": 120.0,
+          "w": 16.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 488.0,
+          "y": 168.0,
+          "w": 16.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 684.0,
+          "y": 224.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 752.0,
+          "y": 220.0,
+          "w": 112.0,
+          "h": 24.0,
+          "art_tag": "templeB"
         }
       ],
-      "hazards": [],
+      "hazards": [
+        {
+          "x": 572.0,
+          "y": 228.0,
+          "w": 40.0,
+          "h": 8.0
+        },
+        {
+          "x": 640.0,
+          "y": 108.0,
+          "w": 32.0,
+          "h": 8.0
+        },
+        {
+          "x": 684.0,
+          "y": 212.0,
+          "w": 24.0,
+          "h": 8.0
+        },
+        {
+          "x": 652.0,
+          "y": 228.0,
+          "w": 40.0,
+          "h": 8.0
+        },
+        {
+          "x": 748.0,
+          "y": 204.0,
+          "w": 104.0,
+          "h": 8.0
+        }
+      ],
       "checkpoints": [
         {
           "id": "room_03_cp",
-          "x": 524.0,
-          "y": 174.0
+          "x": 508.0,
+          "y": 116.0
+        },
+        {
+          "id": "editor_83",
+          "x": 776.0,
+          "y": 152.0
         }
       ],
-      "dashcrystals": [
+      "dashcrystals": [],
+      "springs": [
         {
-          "id": "room_03_dash",
-          "x": 624.0,
-          "y": 160.0
+          "id": "editor_spring_130",
+          "x": 544.0,
+          "y": 106.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_140",
+          "x": 724.0,
+          "y": 138.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_141",
+          "x": 550.0,
+          "y": 168.0,
+          "direction": "left"
+        },
+        {
+          "id": "editor_spring_6",
+          "x": 550.0,
+          "y": 204.0,
+          "direction": "left"
         }
       ],
       "exits": [
@@ -421,8 +1016,8 @@
           "side": "left",
           "target_room": "room_02",
           "target_spawn": "from_room_03",
-          "x": 486.0,
-          "y": 174.0,
+          "x": 480.0,
+          "y": 88.0,
           "w": 12.0,
           "h": 112.0,
           "preserve_momentum": true
@@ -432,14 +1027,15 @@
           "side": "right",
           "target_room": "room_04",
           "target_spawn": "left_entry",
-          "x": 794.0,
-          "y": 218.0,
+          "x": 800.0,
+          "y": 148.0,
           "w": 12.0,
           "h": 108.0,
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_04",
@@ -453,48 +1049,16 @@
       "spawn_points": [
         {
           "id": "left_entry",
-          "x": 824.0,
-          "y": 218.0
+          "x": 816.0,
+          "y": 144.0
         },
         {
           "id": "from_room_05",
-          "x": 956.0,
-          "y": 72.0
+          "x": 1092.0,
+          "y": 204.0
         }
       ],
       "collision": [
-        {
-          "kind": "solid_ground",
-          "x": 844.0,
-          "y": 188.0,
-          "w": 82.0,
-          "h": 18.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "wall_surface",
-          "x": 896.0,
-          "y": 128.0,
-          "w": 16.0,
-          "h": 130.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "one_way_platform",
-          "x": 958.0,
-          "y": 154.0,
-          "w": 72.0,
-          "h": 8.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 996.0,
-          "y": 96.0,
-          "w": 78.0,
-          "h": 18.0,
-          "art_tag": "templeB"
-        },
         {
           "kind": "camera_zone",
           "x": 960.0,
@@ -502,33 +1066,333 @@
           "w": 320.0,
           "h": 180.0,
           "art_tag": null
+        },
+        {
+          "kind": "solid_ground",
+          "x": 812.0,
+          "y": 108.0,
+          "w": 56.0,
+          "h": 40.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 812.0,
+          "y": 76.0,
+          "w": 56.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 796.0,
+          "y": 228.0,
+          "w": 24.0,
+          "h": 88.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 872.0,
+          "y": 108.0,
+          "w": 16.0,
+          "h": 120.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 852.0,
+          "y": 96.0,
+          "w": 24.0,
+          "h": 64.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 816.0,
+          "y": 228.0,
+          "w": 16.0,
+          "h": 88.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 872.0,
+          "y": 184.0,
+          "w": 16.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 916.0,
+          "y": 168.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 940.0,
+          "y": 160.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 964.0,
+          "y": 152.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 892.0,
+          "y": 260.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 916.0,
+          "y": 260.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 940.0,
+          "y": 260.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 964.0,
+          "y": 260.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 988.0,
+          "y": 144.0,
+          "w": 24.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 988.0,
+          "y": 260.0,
+          "w": 24.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1044.0,
+          "y": 68.0,
+          "w": 24.0,
+          "h": 136.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1008.0,
+          "y": 120.0,
+          "w": 48.0,
+          "h": 32.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1184.0,
+          "y": 88.0,
+          "w": 8.0,
+          "h": 8.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1072.0,
+          "y": 84.0,
+          "w": 32.0,
+          "h": 104.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 852.0,
+          "y": 260.0,
+          "w": 56.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 900.0,
+          "y": 168.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 888.0,
+          "y": 168.0,
+          "w": 16.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1092.0,
+          "y": 104.0,
+          "w": 8.0,
+          "h": 112.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1136.0,
+          "y": 108.0,
+          "w": 32.0,
+          "h": 104.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1068.0,
+          "y": 260.0,
+          "w": 136.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1088.0,
+          "y": 164.0,
+          "w": 16.0,
+          "h": 56.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1136.0,
+          "y": 204.0,
+          "w": 32.0,
+          "h": 88.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1116.0,
+          "y": 152.0,
+          "w": 8.0,
+          "h": 192.0,
+          "art_tag": "templeB"
         }
       ],
       "hazards": [
         {
-          "x": 1040.0,
-          "y": 84.0,
-          "w": 34.0,
-          "h": 10.0
+          "x": 860.0,
+          "y": 136.0,
+          "w": 8.0,
+          "h": 16.0
+        },
+        {
+          "x": 940.0,
+          "y": 172.0,
+          "w": 24.0,
+          "h": 8.0
+        },
+        {
+          "x": 988.0,
+          "y": 156.0,
+          "w": 24.0,
+          "h": 8.0
+        },
+        {
+          "x": 860.0,
+          "y": 196.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": 828.0,
+          "y": 240.0,
+          "w": 8.0,
+          "h": 16.0
+        },
+        {
+          "x": 940.0,
+          "y": 244.0,
+          "w": 120.0,
+          "h": 8.0
+        },
+        {
+          "x": 884.0,
+          "y": 180.0,
+          "w": 8.0,
+          "h": 8.0
+        },
+        {
+          "x": 1072.0,
+          "y": 140.0,
+          "w": 16.0,
+          "h": 8.0
+        },
+        {
+          "x": 1076.0,
+          "y": 168.0,
+          "w": 8.0,
+          "h": 48.0
+        },
+        {
+          "x": 1056.0,
+          "y": 244.0,
+          "w": 112.0,
+          "h": 8.0
+        },
+        {
+          "x": 1012.0,
+          "y": 140.0,
+          "w": 24.0,
+          "h": 8.0
         }
       ],
       "checkpoints": [
         {
           "id": "room_04_cp",
-          "x": 844.0,
-          "y": 218.0
-        }
-      ],
-      "dashcrystals": [
-        {
-          "id": "room_04_dash",
-          "x": 962.0,
-          "y": 206.0
+          "x": 816.0,
+          "y": 144.0
         },
         {
-          "id": "room_04_dash_top",
-          "x": 958.0,
-          "y": 128.0
+          "id": "editor_72",
+          "x": 1092.0,
+          "y": 204.0
+        }
+      ],
+      "dashcrystals": [],
+      "springs": [
+        {
+          "id": "editor_spring_39",
+          "x": 1044.0,
+          "y": 138.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_52",
+          "x": 826.0,
+          "y": 216.0,
+          "direction": "right"
         }
       ],
       "exits": [
@@ -537,8 +1401,8 @@
           "side": "left",
           "target_room": "room_03",
           "target_spawn": "from_room_04",
-          "x": 806.0,
-          "y": 218.0,
+          "x": 792.0,
+          "y": 132.0,
           "w": 12.0,
           "h": 108.0,
           "preserve_momentum": true
@@ -547,15 +1411,16 @@
           "id": "room_04_to_05",
           "side": "top",
           "target_room": "room_05",
-          "target_spawn": "bottom_entry",
-          "x": 936.0,
-          "y": 96.0,
+          "target_spawn": "editor_43",
+          "x": 1124.0,
+          "y": 92.0,
           "w": 84.0,
           "h": 12.0,
           "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_05",
@@ -569,35 +1434,16 @@
       "spawn_points": [
         {
           "id": "bottom_entry",
-          "x": 956.0,
-          "y": 300.0
+          "x": 820.0,
+          "y": 292.0
+        },
+        {
+          "id": "editor_43",
+          "x": 820.0,
+          "y": 436.0
         }
       ],
       "collision": [
-        {
-          "kind": "one_way_platform",
-          "x": 956.0,
-          "y": 334.0,
-          "w": 70.0,
-          "h": 8.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 902.0,
-          "y": 398.0,
-          "w": 72.0,
-          "h": 18.0,
-          "art_tag": "templeB"
-        },
-        {
-          "kind": "solid_ground",
-          "x": 1030.0,
-          "y": 410.0,
-          "w": 90.0,
-          "h": 20.0,
-          "art_tag": "templeB"
-        },
         {
           "kind": "effect_zone",
           "x": 960.0,
@@ -616,73 +1462,318 @@
         },
         {
           "kind": "solid_ground",
-          "x": 956.0,
-          "y": 280.0,
-          "w": 88.0,
+          "x": 1096.0,
+          "y": 272.0,
+          "w": 64.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 820.0,
+          "y": 272.0,
+          "w": 40.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 796.0,
+          "y": 272.0,
+          "w": 8.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1056.0,
+          "y": 272.0,
+          "w": 16.0,
           "h": 16.0,
           "art_tag": "templeB"
         },
         {
           "kind": "solid_ground",
           "x": 884.0,
-          "y": 328.0,
-          "w": 24.0,
-          "h": 112.0,
+          "y": 292.0,
+          "w": 8.0,
+          "h": 56.0,
           "art_tag": "templeB"
         },
         {
           "kind": "solid_ground",
-          "x": 1028.0,
-          "y": 336.0,
+          "x": 832.0,
+          "y": 400.0,
+          "w": 96.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 968.0,
+          "y": 400.0,
+          "w": 176.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 952.0,
+          "y": 456.0,
+          "w": 208.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1092.0,
+          "y": 456.0,
+          "w": 72.0,
+          "h": 16.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1120.0,
+          "y": 372.0,
+          "w": 16.0,
+          "h": 136.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1064.0,
+          "y": 364.0,
+          "w": 16.0,
+          "h": 88.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 1120.0,
+          "y": 444.0,
+          "w": 16.0,
+          "h": 8.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 796.0,
+          "y": 420.0,
           "w": 24.0,
-          "h": 128.0,
+          "h": 24.0,
+          "art_tag": "templeB"
+        },
+        {
+          "kind": "solid_ground",
+          "x": 836.0,
+          "y": 456.0,
+          "w": 24.0,
+          "h": 16.0,
           "art_tag": "templeB"
         }
       ],
       "hazards": [
         {
-          "x": 912.0,
-          "y": 412.0,
-          "w": 32.0,
-          "h": 8.0
-        },
-        {
-          "x": 860.0,
-          "y": 396.0,
+          "x": 892.0,
+          "y": 296.0,
           "w": 8.0,
-          "h": 24.0
+          "h": 48.0
         },
         {
-          "x": 900.0,
-          "y": 344.0,
-          "w": 8.0,
-          "h": 64.0
-        },
-        {
-          "x": 1012.0,
-          "y": 344.0,
-          "w": 8.0,
-          "h": 80.0
-        },
-        {
-          "x": 884.0,
-          "y": 412.0,
-          "w": 24.0,
-          "h": 8.0
+          "x": 980.0,
+          "y": 244.0,
+          "w": 152.0,
+          "h": 16.0
         }
       ],
       "checkpoints": [
         {
           "id": "room_05_cp",
-          "x": 956.0,
-          "y": 304.0
+          "x": 820.0,
+          "y": 292.0
+        },
+        {
+          "id": "editor_87",
+          "x": 820.0,
+          "y": 420.0
         }
       ],
       "dashcrystals": [
         {
-          "id": "room_05_dash",
-          "x": 956.0,
-          "y": 360.0
+          "id": "editor_51",
+          "x": 848.0,
+          "y": 308.0
+        }
+      ],
+      "springs": [
+        {
+          "id": "editor_spring_95",
+          "x": 856.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_96",
+          "x": 872.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_97",
+          "x": 904.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_98",
+          "x": 936.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_99",
+          "x": 952.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_100",
+          "x": 888.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_101",
+          "x": 920.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_102",
+          "x": 968.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_103",
+          "x": 984.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_104",
+          "x": 1000.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_105",
+          "x": 1016.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_106",
+          "x": 1032.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_107",
+          "x": 1048.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_108",
+          "x": 1064.0,
+          "y": 410.0,
+          "direction": "up"
+        },
+        {
+          "id": "editor_spring_109",
+          "x": 856.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_110",
+          "x": 872.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_111",
+          "x": 888.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_112",
+          "x": 904.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_113",
+          "x": 920.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_114",
+          "x": 936.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_115",
+          "x": 952.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_116",
+          "x": 968.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_117",
+          "x": 984.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_118",
+          "x": 1000.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_119",
+          "x": 1016.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_120",
+          "x": 1032.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_121",
+          "x": 1048.0,
+          "y": 446.0,
+          "direction": "down"
+        },
+        {
+          "id": "editor_spring_122",
+          "x": 1064.0,
+          "y": 446.0,
+          "direction": "down"
         }
       ],
       "exits": [
@@ -691,21 +1782,33 @@
           "side": "bottom",
           "target_room": "room_04",
           "target_spawn": "from_room_05",
-          "x": 956.0,
-          "y": 274.0,
+          "x": 768.0,
+          "y": 460.0,
           "w": 84.0,
           "h": 12.0,
+          "preserve_momentum": false
+        },
+        {
+          "id": "editor_exit_68",
+          "side": "right",
+          "target_room": "room_01",
+          "target_spawn": "editor_69",
+          "x": 796.0,
+          "y": 300.0,
+          "w": 8.0,
+          "h": 40.0,
           "preserve_momentum": false
         }
       ],
       "completion_zones": [
         {
-          "x": 1072.0,
-          "y": 436.0,
+          "x": 1140.0,
+          "y": 284.0,
           "w": 56.0,
           "h": 64.0
         }
-      ]
+      ],
+      "grasses": []
     }
   ]
 }

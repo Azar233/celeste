@@ -230,6 +230,12 @@
           "x": -48.0,
           "y": -38.0,
           "direction": "up"
+        },
+        {
+          "id": "editor_spring_1",
+          "x": -34.0,
+          "y": 40.0,
+          "direction": "left"
         }
       ],
       "exits": [

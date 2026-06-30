@@ -11,14 +11,15 @@ use crate::app_state::{GameState, PendingMapPath};
 use crate::components::{
     AnimationState, AnimationTimer, CheckpointMarker, ClimbStamina, ClimbTopOutState, ColliderSize,
     CompletionZone, CornerBoostState, Crouching, DashCrystal, DashSlideState, DashState,
-    DashTrailEmitter, Facing, GameplayEntity, Ground, Grounded, Hair, HairBangs, HairMaterial,
-    HairSegment, Hazard, JumpSource, JumpState, LevelEntity, MovementInput, Player,
-    PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, RoomExitMarker, Spring,
-    Velocity, WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
+    DashTrailEmitter, Facing, GameplayEntity, Grass, GrassAnimation, Ground, Grounded, Hair,
+    HairBangs, HairMaterial, HairSegment, Hazard, JumpSource, JumpState, LevelEntity,
+    MovementInput, Player, PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine,
+    RoomExitMarker, Spring, Velocity, WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
 };
 use crate::constants::{
     BACKGROUND_Z, BANGS_Z, CLIMB_STAMINA_MAX, DASH_CRYSTAL_SIZE, DASH_CRYSTAL_Z,
-    HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z, PLAYER_COLLIDER_SIZE,
+    GRASS_ANIMATION_INTERVAL, GRASS_FRAME_COUNT, GRASS_TILE_SIZE, GRASS_Z, HAIR_OUTLINE_WIDTH,
+    HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z, PLAYER_COLLIDER_SIZE,
     PLAYER_RENDER_Z, SPRING_SPRITE_SIZE, SPRING_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::editor::editor_active;
@@ -110,6 +111,7 @@ pub struct LevelArt {
     pub dash_crystal_frames: Vec<Handle<Image>>,
     pub dash_crystal_vanished: Handle<Image>,
     pub spring_frames: Vec<Handle<Image>>,
+    pub grass_frames: Vec<Handle<Image>>,
 }
 
 #[derive(Clone, Copy)]
@@ -230,6 +232,12 @@ pub fn setup(
         spring_frames: (0..=5)
             .map(|frame| asset_server.load(format!("figs/spring/{frame:02}.png")))
             .collect(),
+        grass_frames: vec![
+            asset_server.load("figs/grass/top_a00.png"),
+            asset_server.load("figs/grass/top_a01.png"),
+            asset_server.load("figs/grass/top_a02.png"),
+            asset_server.load("figs/grass/top_a03.png"),
+        ],
     };
 
     let map = load_map_from_path(&map_path)
@@ -536,6 +544,10 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
             },
             Transform::from_xyz(completion_zone.x, completion_zone.y, 0.0),
         ));
+    }
+
+    for grass_rect in &room.grasses {
+        spawn_grass_tiles(commands, grass_rect, &level_art.grass_frames);
     }
 
     for checkpoint in &room.checkpoints {
@@ -939,6 +951,44 @@ fn cleanup_gameplay_entities(
         commands.entity(entity).despawn_recursive();
     }
     pending_map_path.path = None;
+}
+
+fn spawn_grass_tiles(
+    commands: &mut Commands,
+    grass_rect: &RectData,
+    grass_frames: &[Handle<Image>],
+) {
+    let tile_size = GRASS_TILE_SIZE;
+    let count_x = ((grass_rect.w / tile_size).round() as i32).max(1);
+    let count_y = ((grass_rect.h / tile_size).round() as i32).max(1);
+    let start_x = grass_rect.x - count_x as f32 * tile_size * 0.5 + tile_size * 0.5;
+    let start_y = grass_rect.y - count_y as f32 * tile_size * 0.5 + tile_size * 0.5;
+
+    for ix in 0..count_x {
+        for iy in 0..count_y {
+            let world_x = start_x + ix as f32 * tile_size;
+            let world_y = start_y + iy as f32 * tile_size;
+
+            let seed = (ix as u32).wrapping_mul(73856093) ^ (iy as u32).wrapping_mul(19349663);
+            let start_frame = (seed as usize) % GRASS_FRAME_COUNT;
+
+            commands.spawn((
+                LevelEntity,
+                Grass,
+                GrassAnimation {
+                    timer: start_frame as f32 * GRASS_ANIMATION_INTERVAL,
+                    frame_index: start_frame,
+                    frames: grass_frames.to_vec(),
+                },
+                Sprite {
+                    image: grass_frames[start_frame].clone(),
+                    custom_size: Some(Vec2::splat(tile_size)),
+                    ..default()
+                },
+                Transform::from_xyz(world_x, world_y, GRASS_Z),
+            ));
+        }
+    }
 }
 
 fn spawn_weather_overlay(

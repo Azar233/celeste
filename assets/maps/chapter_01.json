@@ -66,6 +66,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_00_to_01",
@@ -79,7 +80,21 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": [
+        {
+          "x": -96.0,
+          "y": -60.0,
+          "w": 32.0,
+          "h": 8.0
+        },
+        {
+          "x": 8.0,
+          "y": -60.0,
+          "w": 64.0,
+          "h": 8.0
+        }
+      ]
     },
     {
       "id": "room_01",
@@ -174,6 +189,14 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [
+        {
+          "id": "editor_spring_11",
+          "x": 368.0,
+          "y": -54.0,
+          "direction": "up"
+        }
+      ],
       "exits": [
         {
           "id": "room_01_to_00",
@@ -198,7 +221,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_02",
@@ -327,6 +351,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_02_to_01",
@@ -351,7 +376,8 @@
           "preserve_momentum": false
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_03",
@@ -598,6 +624,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_03_to_02",
@@ -622,7 +649,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_04",
@@ -781,6 +809,12 @@
           "y": 112.0,
           "w": 8.0,
           "h": 16.0
+        },
+        {
+          "x": 1056.0,
+          "y": 84.0,
+          "w": 128.0,
+          "h": 8.0
         }
       ],
       "checkpoints": [
@@ -807,6 +841,7 @@
           "y": 164.0
         }
       ],
+      "springs": [],
       "exits": [
         {
           "id": "room_04_to_03",
@@ -831,7 +866,8 @@
           "preserve_momentum": true
         }
       ],
-      "completion_zones": []
+      "completion_zones": [],
+      "grasses": []
     },
     {
       "id": "room_05",
@@ -1006,6 +1042,7 @@
           "y": 144.0
         }
       ],
+      "springs": [],
       "exits": [
         {
           "id": "room_05_to_04",
@@ -1026,7 +1063,8 @@
           "w": 48.0,
           "h": 72.0
         }
-      ]
+      ],
+      "grasses": []
     }
   ]
 }
