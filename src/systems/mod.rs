@@ -19,11 +19,11 @@ pub use level::{
     CompletionState, DeathSequence, RoomTransitionCooldown, camera_follow, completion_inactive,
     death_sequence_inactive, handle_completion_overlay_input, handle_completion_zones,
     handle_hazard_respawn, handle_room_transitions, reset_completion_state, reset_death_sequence,
-    update_checkpoint_respawn, update_dash_crystals, update_death_sequence,
+    update_checkpoint_respawn, update_dash_crystals, update_death_sequence, update_springs,
 };
 pub use player::{
-    apply_physics, cache_player_input, player_input, player_movement, tick_timers, trigger_fall_death,
-    update_crouch_state, update_player_state_machine,
+    apply_physics, cache_player_input, player_input, player_movement, tick_timers,
+    trigger_fall_death, update_crouch_state, update_player_state_machine,
 };
 pub use weather::update_weather_material;
 
@@ -53,8 +53,14 @@ impl Plugin for GameplayPlugin {
             .insert_resource(RoomTransitionCooldown::default())
             .insert_resource(CompletionState::default())
             .insert_resource(DeathSequence::default())
-            .add_systems(OnEnter(GameState::InGame), (reset_completion_state, reset_death_sequence))
-            .add_systems(Update, tick_freeze_frames.run_if(in_state(GameState::InGame)))
+            .add_systems(
+                OnEnter(GameState::InGame),
+                (reset_completion_state, reset_death_sequence),
+            )
+            .add_systems(
+                Update,
+                tick_freeze_frames.run_if(in_state(GameState::InGame)),
+            )
             .add_systems(
                 Update,
                 cache_player_input
@@ -72,6 +78,7 @@ impl Plugin for GameplayPlugin {
                     player_movement,
                     trigger_fall_death,
                     update_dash_crystals,
+                    update_springs,
                     handle_room_transitions,
                     handle_hazard_respawn,
                     update_checkpoint_respawn,

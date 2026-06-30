@@ -4,10 +4,11 @@ use bevy::render::camera::ScalingMode;
 use bevy::window::PrimaryWindow;
 
 use crate::app_state::GameState;
+use crate::constants::SPRING_COLLIDER_SIZE;
 use crate::level::{
     ActiveRoom, CollisionKind, CollisionRect, DEFAULT_TILESET_ART_TAG, ExitSide, LoadedMap,
-    NamedPoint, RectData, RoomExitData, TILESET_ART_TAGS, normalize_tileset_art_tag,
-    save_map_to_path_with_backup,
+    NamedPoint, RectData, RoomExitData, SpringData, SpringDirection, TILESET_ART_TAGS,
+    normalize_tileset_art_tag, save_map_to_path_with_backup,
 };
 
 const GRID_SIZE: f32 = 8.0;
@@ -27,13 +28,17 @@ enum EditorTool {
     Checkpoint,
     SpawnPoint,
     DashCrystal,
+    Spring,
     Exit,
     CompletionZone,
 }
 
 impl EditorTool {
     fn is_rect_tool(self) -> bool {
-        matches!(self, Self::SolidGround | Self::Hazard | Self::Exit | Self::CompletionZone)
+        matches!(
+            self,
+            Self::SolidGround | Self::Hazard | Self::Exit | Self::CompletionZone
+        )
     }
 }
 
@@ -44,6 +49,7 @@ enum EditorSelection {
     Checkpoint(usize),
     SpawnPoint(usize),
     DashCrystal(usize),
+    Spring(usize),
     Exit(usize),
     CompletionZone(usize),
 }
@@ -120,7 +126,7 @@ fn editor_keyboard_shortcuts(
         editor.selected = None;
         editor.last_status = if editor.enabled {
             format!(
-                "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit, 8 complete, T tileset, mouse wheel zoom (current: {})",
+                "Editor enabled: 1 select, 2 solid, 3 hazard, 4 checkpoint, 5 spawn, 6 dashcrystal, 7 exit, 8 complete, 9 spring, T tileset, Q/E direction, mouse wheel zoom (current: {})",
                 editor.current_tileset
             )
         } else {
@@ -165,6 +171,10 @@ fn editor_keyboard_shortcuts(
         editor.selected = None;
     } else if keyboard.just_pressed(KeyCode::Digit8) {
         editor.tool = EditorTool::CompletionZone;
+        editor.move_drag = None;
+        editor.selected = None;
+    } else if keyboard.just_pressed(KeyCode::Digit9) {
+        editor.tool = EditorTool::Spring;
         editor.move_drag = None;
         editor.selected = None;
     }
@@ -218,7 +228,21 @@ fn editor_keyboard_shortcuts(
         }
     }
 
-    if handle_selected_exit_shortcuts(&keyboard, &mut editor, &mut loaded_map.data, &active_room.room_id) {
+    if handle_selected_exit_shortcuts(
+        &keyboard,
+        &mut editor,
+        &mut loaded_map.data,
+        &active_room.room_id,
+    ) {
+        editor.dirty = true;
+    }
+
+    if handle_selected_spring_shortcuts(
+        &keyboard,
+        &mut editor,
+        &mut loaded_map.data,
+        &active_room.room_id,
+    ) {
         editor.dirty = true;
     }
 
@@ -280,7 +304,9 @@ fn editor_camera_zoom(
         .clamp(EDITOR_CAMERA_MIN_SCALE, EDITOR_CAMERA_MAX_SCALE);
 }
 
-fn reset_camera_projection(camera_projection_query: &mut Query<&mut OrthographicProjection, With<Camera2d>>) {
+fn reset_camera_projection(
+    camera_projection_query: &mut Query<&mut OrthographicProjection, With<Camera2d>>,
+) {
     if let Ok(mut projection) = camera_projection_query.get_single_mut() {
         projection.scale = DEFAULT_CAMERA_SCALE;
         projection.scaling_mode = ScalingMode::FixedVertical {
@@ -313,7 +339,9 @@ fn editor_mouse_input(
     if mouse.just_pressed(MouseButton::Left) {
         if let Some(selection) = editor.selected {
             if pick_object(&loaded_map.data, &active_room.room_id, world_pos) == Some(selection) {
-                if let Some(original_position) = selection_position(&loaded_map.data, &active_room.room_id, selection) {
+                if let Some(original_position) =
+                    selection_position(&loaded_map.data, &active_room.room_id, selection)
+                {
                     editor.move_drag = Some(MoveDragState {
                         selection,
                         start_mouse: snapped_move_pos,
@@ -330,9 +358,20 @@ fn editor_mouse_input(
 
     if let Some(mut move_drag) = editor.move_drag {
         if mouse.pressed(MouseButton::Left) {
-            let target_position = snap_to_move_drag_grid(move_drag.original_position + (snapped_move_pos - move_drag.start_mouse));
+            let moved_position =
+                move_drag.original_position + (snapped_move_pos - move_drag.start_mouse);
+            let target_position = if matches!(move_drag.selection, EditorSelection::Spring(_)) {
+                moved_position
+            } else {
+                snap_to_move_drag_grid(moved_position)
+            };
             if target_position != move_drag.original_position {
-                match move_selection_to(&mut loaded_map.data, &active_room.room_id, move_drag.selection, target_position) {
+                match move_selection_to(
+                    &mut loaded_map.data,
+                    &active_room.room_id,
+                    move_drag.selection,
+                    target_position,
+                ) {
                     Ok(()) => {
                         move_drag.moved = true;
                         editor.move_drag = Some(move_drag);
@@ -414,10 +453,30 @@ fn editor_mouse_input(
                     x: snapped_pos.x,
                     y: snapped_pos.y,
                 };
-                if add_point_object(&mut loaded_map.data, &active_room.room_id, editor.tool, point) {
+                if add_point_object(
+                    &mut loaded_map.data,
+                    &active_room.room_id,
+                    editor.tool,
+                    point,
+                ) {
                     editor.next_id += 1;
                     editor.dirty = true;
                     editor.last_status = format!("Created {:?}", editor.tool);
+                    info!("{}", editor.last_status);
+                }
+            }
+            EditorTool::Spring => {
+                let spring_position = snap_spring_center_to_grid(world_pos, SpringDirection::Up);
+                let spring = SpringData {
+                    id: format!("editor_spring_{}", editor.next_id),
+                    x: spring_position.x,
+                    y: spring_position.y,
+                    direction: SpringDirection::Up,
+                };
+                if add_spring_object(&mut loaded_map.data, &active_room.room_id, spring) {
+                    editor.next_id += 1;
+                    editor.dirty = true;
+                    editor.last_status = "Created Spring".to_string();
                     info!("{}", editor.last_status);
                 }
             }
@@ -467,7 +526,11 @@ fn editor_overlay_gizmos(
             &mut gizmos,
             hazard.center(),
             hazard.size(),
-            if selected { Color::WHITE } else { Color::srgb(1.0, 0.2, 0.2) },
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(1.0, 0.2, 0.2)
+            },
         );
     }
 
@@ -477,7 +540,11 @@ fn editor_overlay_gizmos(
             &mut gizmos,
             Vec2::new(checkpoint.x, checkpoint.y),
             6.0,
-            if selected { Color::WHITE } else { Color::srgb(1.0, 0.9, 0.2) },
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(1.0, 0.9, 0.2)
+            },
         );
     }
 
@@ -487,7 +554,11 @@ fn editor_overlay_gizmos(
             &mut gizmos,
             Vec2::new(spawn.x, spawn.y),
             5.0,
-            if selected { Color::WHITE } else { Color::srgb(0.25, 0.65, 1.0) },
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(0.25, 0.65, 1.0)
+            },
         );
     }
 
@@ -497,8 +568,28 @@ fn editor_overlay_gizmos(
             &mut gizmos,
             Vec2::new(dashcrystal.x, dashcrystal.y),
             6.0,
-            if selected { Color::WHITE } else { Color::srgb(0.35, 1.0, 1.0) },
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(0.35, 1.0, 1.0)
+            },
         );
+    }
+
+    for (index, spring) in room.springs.iter().enumerate() {
+        let selected = editor.selected == Some(EditorSelection::Spring(index));
+        let position = Vec2::new(spring.x, spring.y);
+        draw_rect_outline(
+            &mut gizmos,
+            position,
+            spring_collision_size(spring.direction),
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(1.0, 0.55, 0.25)
+            },
+        );
+        draw_spring_direction_marker(&mut gizmos, position, spring.direction, selected);
     }
 
     for (index, completion_zone) in room.completion_zones.iter().enumerate() {
@@ -507,7 +598,11 @@ fn editor_overlay_gizmos(
             &mut gizmos,
             completion_zone.center(),
             completion_zone.size(),
-            if selected { Color::WHITE } else { Color::srgb(0.35, 1.0, 0.35) },
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(0.35, 1.0, 0.35)
+            },
         );
     }
 
@@ -517,7 +612,11 @@ fn editor_overlay_gizmos(
             &mut gizmos,
             Vec2::new(exit.x, exit.y),
             Vec2::new(exit.w, exit.h),
-            if selected { Color::WHITE } else { Color::srgb(0.75, 0.35, 1.0) },
+            if selected {
+                Color::WHITE
+            } else {
+                Color::srgb(0.75, 0.35, 1.0)
+            },
         );
         draw_exit_markers(&mut gizmos, exit, selected);
     }
@@ -540,7 +639,9 @@ fn cursor_world_position(
     let window = window_query.get_single().ok()?;
     let cursor_position = window.cursor_position()?;
     let (camera, camera_transform) = camera_query.get_single().ok()?;
-    camera.viewport_to_world_2d(camera_transform, cursor_position).ok()
+    camera
+        .viewport_to_world_2d(camera_transform, cursor_position)
+        .ok()
 }
 
 fn snap_to_grid(position: Vec2) -> Vec2 {
@@ -551,11 +652,46 @@ fn snap_to_move_drag_grid(position: Vec2) -> Vec2 {
     snap_to_step(position, MOVE_DRAG_GRID_SIZE)
 }
 
+fn snap_spring_center_to_grid(position: Vec2, direction: SpringDirection) -> Vec2 {
+    snap_spring_center_to_step(position, direction, GRID_SIZE)
+}
+
+fn snap_spring_center_to_move_drag_grid(position: Vec2, direction: SpringDirection) -> Vec2 {
+    snap_spring_center_to_step(position, direction, MOVE_DRAG_GRID_SIZE)
+}
+
+fn snap_spring_center_to_step(position: Vec2, direction: SpringDirection, step: f32) -> Vec2 {
+    let half_thickness = SPRING_COLLIDER_SIZE.y * 0.5;
+
+    match direction {
+        SpringDirection::Up => Vec2::new(
+            snap_axis_to_step(position.x, step),
+            snap_axis_to_step(position.y - half_thickness, step) + half_thickness,
+        ),
+        SpringDirection::Down => Vec2::new(
+            snap_axis_to_step(position.x, step),
+            snap_axis_to_step(position.y + half_thickness, step) - half_thickness,
+        ),
+        SpringDirection::Left => Vec2::new(
+            snap_axis_to_step(position.x + half_thickness, step) - half_thickness,
+            snap_axis_to_step(position.y, step),
+        ),
+        SpringDirection::Right => Vec2::new(
+            snap_axis_to_step(position.x - half_thickness, step) + half_thickness,
+            snap_axis_to_step(position.y, step),
+        ),
+    }
+}
+
 fn snap_to_step(position: Vec2, step: f32) -> Vec2 {
     Vec2::new(
-        (position.x / step).round() * step,
-        (position.y / step).round() * step,
+        snap_axis_to_step(position.x, step),
+        snap_axis_to_step(position.y, step),
     )
+}
+
+fn snap_axis_to_step(value: f32, step: f32) -> f32 {
+    (value / step).round() * step
 }
 
 fn rect_from_points(a: Vec2, b: Vec2) -> RectData {
@@ -572,7 +708,10 @@ fn rect_from_points(a: Vec2, b: Vec2) -> RectData {
     }
 }
 
-fn room_mut<'a>(map: &'a mut crate::level::MapFile, room_id: &str) -> Option<&'a mut crate::level::RoomData> {
+fn room_mut<'a>(
+    map: &'a mut crate::level::MapFile,
+    room_id: &str,
+) -> Option<&'a mut crate::level::RoomData> {
     map.rooms.iter_mut().find(|room| room.id == room_id)
 }
 
@@ -703,8 +842,14 @@ fn selection_position(
             .dashcrystals
             .get(index)
             .map(|dashcrystal| Vec2::new(dashcrystal.x, dashcrystal.y)),
+        EditorSelection::Spring(index) => room
+            .springs
+            .get(index)
+            .map(|spring| Vec2::new(spring.x, spring.y)),
         EditorSelection::Exit(index) => room.exits.get(index).map(|exit| Vec2::new(exit.x, exit.y)),
-        EditorSelection::CompletionZone(index) => room.completion_zones.get(index).map(RectData::center),
+        EditorSelection::CompletionZone(index) => {
+            room.completion_zones.get(index).map(RectData::center)
+        }
     }
 }
 
@@ -715,55 +860,82 @@ fn move_selection_to(
     target_position: Vec2,
 ) -> Result<(), String> {
     let Some(room) = room_mut(map, room_id) else {
-        return Err(format!("Cannot move {selection:?}: active room '{room_id}' does not exist"));
+        return Err(format!(
+            "Cannot move {selection:?}: active room '{room_id}' does not exist"
+        ));
     };
 
     match selection {
         EditorSelection::Collision(index) => {
             let Some(collision) = room.collision.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             collision.x = target_position.x;
             collision.y = target_position.y;
         }
         EditorSelection::Hazard(index) => {
             let Some(hazard) = room.hazards.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             hazard.x = target_position.x;
             hazard.y = target_position.y;
         }
         EditorSelection::Checkpoint(index) => {
             let Some(checkpoint) = room.checkpoints.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             checkpoint.x = target_position.x;
             checkpoint.y = target_position.y;
         }
         EditorSelection::SpawnPoint(index) => {
             let Some(spawn) = room.spawn_points.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             spawn.x = target_position.x;
             spawn.y = target_position.y;
         }
         EditorSelection::DashCrystal(index) => {
             let Some(dashcrystal) = room.dashcrystals.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             dashcrystal.x = target_position.x;
             dashcrystal.y = target_position.y;
         }
+        EditorSelection::Spring(index) => {
+            let Some(spring) = room.springs.get_mut(index) else {
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
+            };
+            let snapped_position =
+                snap_spring_center_to_move_drag_grid(target_position, spring.direction);
+            spring.x = snapped_position.x;
+            spring.y = snapped_position.y;
+        }
         EditorSelection::Exit(index) => {
             let Some(exit) = room.exits.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             exit.x = target_position.x;
             exit.y = target_position.y;
         }
         EditorSelection::CompletionZone(index) => {
             let Some(completion_zone) = room.completion_zones.get_mut(index) else {
-                return Err(format!("Cannot move {selection:?}: selected object no longer exists"));
+                return Err(format!(
+                    "Cannot move {selection:?}: selected object no longer exists"
+                ));
             };
             completion_zone.x = target_position.x;
             completion_zone.y = target_position.y;
@@ -790,7 +962,13 @@ fn handle_selected_exit_shortcuts(
     let next_side = keyboard.just_pressed(KeyCode::KeyE);
     let toggle_momentum = keyboard.just_pressed(KeyCode::KeyM);
 
-    if !(cycle_room || previous_spawn || next_spawn || previous_side || next_side || toggle_momentum) {
+    if !(cycle_room
+        || previous_spawn
+        || next_spawn
+        || previous_side
+        || next_side
+        || toggle_momentum)
+    {
         return false;
     }
 
@@ -801,12 +979,17 @@ fn handle_selected_exit_shortcuts(
             (
                 room.id.clone(),
                 room.default_spawn.clone(),
-                room.spawn_points.iter().map(|spawn| spawn.id.clone()).collect(),
+                room.spawn_points
+                    .iter()
+                    .map(|spawn| spawn.id.clone())
+                    .collect(),
             )
         })
         .collect();
-    let Some(active_room_index) = map.rooms.iter().position(|room| room.id == active_room_id) else {
-        editor.last_status = format!("Cannot edit Exit: active room '{active_room_id}' does not exist");
+    let Some(active_room_index) = map.rooms.iter().position(|room| room.id == active_room_id)
+    else {
+        editor.last_status =
+            format!("Cannot edit Exit: active room '{active_room_id}' does not exist");
         warn!("{}", editor.last_status);
         return false;
     };
@@ -834,7 +1017,10 @@ fn handle_selected_exit_shortcuts(
     }
 
     if previous_spawn || next_spawn {
-        if let Some(room_info) = room_infos.iter().find(|(room_id, _, _)| room_id == &target_room) {
+        if let Some(room_info) = room_infos
+            .iter()
+            .find(|(room_id, _, _)| room_id == &target_room)
+        {
             let spawn_ids = spawn_choices_for_room(room_info);
             if !spawn_ids.is_empty() {
                 let current_index = spawn_ids
@@ -931,6 +1117,70 @@ fn describe_exit(exit: &RoomExitData) -> String {
     )
 }
 
+fn handle_selected_spring_shortcuts(
+    keyboard: &ButtonInput<KeyCode>,
+    editor: &mut EditorState,
+    map: &mut crate::level::MapFile,
+    active_room_id: &str,
+) -> bool {
+    let Some(EditorSelection::Spring(spring_index)) = editor.selected else {
+        return false;
+    };
+
+    let previous_direction = keyboard.just_pressed(KeyCode::KeyQ);
+    let next_direction = keyboard.just_pressed(KeyCode::KeyE);
+    if !(previous_direction || next_direction) {
+        return false;
+    }
+
+    let Some(room) = room_mut(map, active_room_id) else {
+        editor.last_status =
+            format!("Cannot edit Spring: active room '{active_room_id}' does not exist");
+        warn!("{}", editor.last_status);
+        return false;
+    };
+    let Some(spring) = room.springs.get_mut(spring_index) else {
+        editor.last_status = format!("Cannot edit Spring: index {spring_index} no longer exists");
+        warn!("{}", editor.last_status);
+        return false;
+    };
+
+    spring.direction = if next_direction {
+        spring.direction.next()
+    } else {
+        previous_spring_direction(spring.direction)
+    };
+    let snapped_position =
+        snap_spring_center_to_grid(Vec2::new(spring.x, spring.y), spring.direction);
+    spring.x = snapped_position.x;
+    spring.y = snapped_position.y;
+    editor.last_status = describe_spring(spring);
+    info!("{}", editor.last_status);
+    true
+}
+
+fn previous_spring_direction(direction: SpringDirection) -> SpringDirection {
+    match direction {
+        SpringDirection::Up => SpringDirection::Left,
+        SpringDirection::Left => SpringDirection::Down,
+        SpringDirection::Down => SpringDirection::Right,
+        SpringDirection::Right => SpringDirection::Up,
+    }
+}
+
+fn describe_spring(spring: &SpringData) -> String {
+    format!("Spring '{}' direction {:?}", spring.id, spring.direction)
+}
+
+fn add_spring_object(map: &mut crate::level::MapFile, room_id: &str, spring: SpringData) -> bool {
+    let Some(room) = room_mut(map, room_id) else {
+        return false;
+    };
+
+    room.springs.push(spring);
+    true
+}
+
 fn add_point_object(
     map: &mut crate::level::MapFile,
     room_id: &str,
@@ -968,7 +1218,9 @@ fn delete_selection(
     }
 
     let Some(room) = room_mut(map, room_id) else {
-        return Err(format!("Cannot delete {selection:?}: active room '{room_id}' does not exist"));
+        return Err(format!(
+            "Cannot delete {selection:?}: active room '{room_id}' does not exist"
+        ));
     };
 
     match selection {
@@ -988,6 +1240,10 @@ fn delete_selection(
             room.dashcrystals.remove(index);
             Ok(())
         }
+        EditorSelection::Spring(index) if index < room.springs.len() => {
+            room.springs.remove(index);
+            Ok(())
+        }
         EditorSelection::Exit(index) if index < room.exits.len() => {
             room.exits.remove(index);
             Ok(())
@@ -996,7 +1252,9 @@ fn delete_selection(
             room.completion_zones.remove(index);
             Ok(())
         }
-        _ => Err(format!("Cannot delete {selection:?}: selected object no longer exists")),
+        _ => Err(format!(
+            "Cannot delete {selection:?}: selected object no longer exists"
+        )),
     }
 }
 
@@ -1006,14 +1264,20 @@ fn delete_spawn_point_selection(
     selection: EditorSelection,
 ) -> Result<(), String> {
     let EditorSelection::SpawnPoint(index) = selection else {
-        return Err(format!("Cannot delete {selection:?}: expected a spawn point selection"));
+        return Err(format!(
+            "Cannot delete {selection:?}: expected a spawn point selection"
+        ));
     };
 
     let Some(room_index) = map.rooms.iter().position(|room| room.id == room_id) else {
-        return Err(format!("Cannot delete SpawnPoint({index}): active room '{room_id}' does not exist"));
+        return Err(format!(
+            "Cannot delete SpawnPoint({index}): active room '{room_id}' does not exist"
+        ));
     };
     let Some(spawn) = map.rooms[room_index].spawn_points.get(index) else {
-        return Err(format!("Cannot delete SpawnPoint({index}): selected spawn point no longer exists"));
+        return Err(format!(
+            "Cannot delete SpawnPoint({index}): selected spawn point no longer exists"
+        ));
     };
     let spawn_id = spawn.id.clone();
 
@@ -1046,7 +1310,11 @@ fn pick_object(
     let room = map.room(room_id)?;
 
     for (index, exit) in room.exits.iter().enumerate().rev() {
-        if point_in_rect(position, Vec2::new(exit.x, exit.y), Vec2::new(exit.w, exit.h)) {
+        if point_in_rect(
+            position,
+            Vec2::new(exit.x, exit.y),
+            Vec2::new(exit.w, exit.h),
+        ) {
             return Some(EditorSelection::Exit(index));
         }
     }
@@ -1072,6 +1340,16 @@ fn pick_object(
             )
         {
             return Some(EditorSelection::Collision(index));
+        }
+    }
+
+    for (index, spring) in room.springs.iter().enumerate().rev() {
+        if point_in_rect(
+            position,
+            Vec2::new(spring.x, spring.y),
+            spring_collision_size(spring.direction),
+        ) {
+            return Some(EditorSelection::Spring(index));
         }
     }
 
@@ -1102,6 +1380,15 @@ fn editor_collision_color(kind: &CollisionKind) -> Option<Color> {
         CollisionKind::WallSurface => Some(Color::srgb(0.0, 0.85, 1.0)),
         CollisionKind::OneWayPlatform => Some(Color::srgb(1.0, 0.9, 0.1)),
         CollisionKind::CameraZone | CollisionKind::EffectZone => None,
+    }
+}
+
+fn spring_collision_size(direction: SpringDirection) -> Vec2 {
+    match direction {
+        SpringDirection::Up | SpringDirection::Down => SPRING_COLLIDER_SIZE,
+        SpringDirection::Left | SpringDirection::Right => {
+            Vec2::new(SPRING_COLLIDER_SIZE.y, SPRING_COLLIDER_SIZE.x)
+        }
     }
 }
 
@@ -1196,6 +1483,31 @@ fn draw_exit_markers(gizmos: &mut Gizmos, exit: &RoomExitData, selected: bool) {
     }
 }
 
+fn draw_spring_direction_marker(
+    gizmos: &mut Gizmos,
+    position: Vec2,
+    direction: SpringDirection,
+    selected: bool,
+) {
+    let color = if selected {
+        Color::srgb(1.0, 0.95, 0.2)
+    } else {
+        Color::srgb(1.0, 0.7, 0.35)
+    };
+    let vector = match direction {
+        SpringDirection::Up => Vec2::Y,
+        SpringDirection::Down => -Vec2::Y,
+        SpringDirection::Left => -Vec2::X,
+        SpringDirection::Right => Vec2::X,
+    };
+    let tip = position + vector * 8.0;
+    let side = Vec2::new(-vector.y, vector.x) * 3.0;
+
+    gizmos.line_2d(position, tip, color);
+    gizmos.line_2d(tip, tip - vector * 4.0 + side, color);
+    gizmos.line_2d(tip, tip - vector * 4.0 - side, color);
+}
+
 fn draw_point_marker(gizmos: &mut Gizmos, position: Vec2, radius: f32, color: Color) {
     gizmos.line_2d(
         position + Vec2::new(-radius, 0.0),
@@ -1251,7 +1563,10 @@ fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {
         }
         for collision in &room.collision {
             if collision.w <= 0.0 || collision.h <= 0.0 {
-                return Err(format!("room '{}' has invalid collision rectangle", room.id));
+                return Err(format!(
+                    "room '{}' has invalid collision rectangle",
+                    room.id
+                ));
             }
             if let Some(art_tag) = collision.art_tag.as_deref() {
                 if !is_valid_tileset_art_tag(art_tag) {
@@ -1271,7 +1586,10 @@ fn validate_map_for_save(map: &crate::level::MapFile) -> Result<(), String> {
         }
         for completion_zone in &room.completion_zones {
             if completion_zone.w <= 0.0 || completion_zone.h <= 0.0 {
-                return Err(format!("room '{}' has invalid completion zone rectangle", room.id));
+                return Err(format!(
+                    "room '{}' has invalid completion zone rectangle",
+                    room.id
+                ));
             }
         }
         for exit in &room.exits {

@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
+
+use crate::level::SpringDirection;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::sprite::{AlphaMode2d, Material2d};
 
@@ -55,6 +57,19 @@ pub struct DashCrystal {
 }
 
 #[derive(Component)]
+pub struct Spring {
+    #[allow(dead_code)]
+    pub id: String,
+    pub direction: SpringDirection,
+    pub collider_offset: Vec2,
+    pub animation_timer: f32,
+    pub frame_index: usize,
+    pub animating: bool,
+    pub player_inside: bool,
+    pub frames: Vec<Handle<Image>>,
+}
+
+#[derive(Component)]
 pub struct LevelEntity;
 
 #[derive(Component)]
@@ -63,12 +78,21 @@ pub struct CompletionOverlay;
 #[derive(Component)]
 pub struct GameplayEntity;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JumpSource {
+    None,
+    Player,
+    Spring,
+}
+
 #[derive(Component)]
 pub struct JumpState {
     pub jump_grace_timer: f32,
     pub jump_buffer_timer: f32,
     pub super_jump_timer: f32,
     pub fast_jump_active: bool,
+    pub spring_lock_timer: f32,
+    pub source: JumpSource,
 }
 
 #[derive(Component)]
@@ -126,6 +150,8 @@ pub struct CornerBoostState {
     pub wall_side: WallContact,
     pub wall_top_y: f32,
     pub climb_jump_armed: bool,
+    pub climb_jump_used: bool,
+    pub passed_wall_top_after_arm: bool,
 }
 
 impl CornerBoostState {
@@ -137,6 +163,8 @@ impl CornerBoostState {
         self.wall_side = WallContact::None;
         self.wall_top_y = 0.0;
         self.climb_jump_armed = false;
+        self.climb_jump_used = false;
+        self.passed_wall_top_after_arm = false;
     }
 }
 
@@ -150,6 +178,8 @@ impl Default for CornerBoostState {
             wall_side: WallContact::None,
             wall_top_y: 0.0,
             climb_jump_armed: false,
+            climb_jump_used: false,
+            passed_wall_top_after_arm: false,
         }
     }
 }

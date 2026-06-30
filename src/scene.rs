@@ -10,22 +10,23 @@ use bevy::sprite::Anchor;
 use crate::app_state::{GameState, PendingMapPath};
 use crate::components::{
     AnimationState, AnimationTimer, CheckpointMarker, ClimbStamina, ClimbTopOutState, ColliderSize,
-    CompletionZone, CornerBoostState, Crouching, DashCrystal, DashSlideState, DashState, DashTrailEmitter, Facing,
-    GameplayEntity, Ground, Grounded, Hair, HairBangs, HairMaterial, HairSegment, Hazard, JumpState,
-    LevelEntity, MovementInput, Player, PlayerActionInput, PlayerAnimations, PlayerState,
-    PlayerStateMachine, RoomExitMarker, Velocity, WallContact, WallJumpTimer, WeatherMaterial,
-    WeatherOverlay,
+    CompletionZone, CornerBoostState, Crouching, DashCrystal, DashSlideState, DashState,
+    DashTrailEmitter, Facing, GameplayEntity, Ground, Grounded, Hair, HairBangs, HairMaterial,
+    HairSegment, Hazard, JumpSource, JumpState, LevelEntity, MovementInput, Player,
+    PlayerActionInput, PlayerAnimations, PlayerState, PlayerStateMachine, RoomExitMarker, Spring,
+    Velocity, WallContact, WallJumpTimer, WeatherMaterial, WeatherOverlay,
 };
 use crate::constants::{
     BACKGROUND_Z, BANGS_Z, CLIMB_STAMINA_MAX, DASH_CRYSTAL_SIZE, DASH_CRYSTAL_Z,
-    HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z,
-    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
-};
-use crate::level::{
-    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, DEFAULT_TILESET_ART_TAG, LoadedMap,
-    RectData, RoomData, TILESET_ART_TAGS, load_map_from_path, normalize_tileset_art_tag,
+    HAIR_OUTLINE_WIDTH, HAIR_PIXEL_STEPS, HAIR_SEGMENT_SIZES, HAIR_SEGMENT_Z, PLAYER_COLLIDER_SIZE,
+    PLAYER_RENDER_Z, SPRING_SPRITE_SIZE, SPRING_Z, WEATHER_OVERLAY_SIZE, WEATHER_OVERLAY_Z,
 };
 use crate::editor::editor_active;
+use crate::level::{
+    ActiveRoom, CollisionKind, CollisionRect, DEFAULT_MAP_PATH, DEFAULT_TILESET_ART_TAG, LoadedMap,
+    RectData, RoomData, SpringDirection, TILESET_ART_TAGS, load_map_from_path,
+    normalize_tileset_art_tag,
+};
 use crate::utils::{color_to_vec4, initial_hair_positions};
 
 const TILE_SIZE: f32 = 8.0;
@@ -108,6 +109,7 @@ pub struct LevelArt {
     pub danger_right: Handle<Image>,
     pub dash_crystal_frames: Vec<Handle<Image>>,
     pub dash_crystal_vanished: Handle<Image>,
+    pub spring_frames: Vec<Handle<Image>>,
 }
 
 #[derive(Clone, Copy)]
@@ -124,7 +126,10 @@ impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::InGame), setup)
             .add_systems(OnExit(GameState::InGame), cleanup_gameplay_entities)
-            .add_systems(Update, debug_gizmos.run_if(in_state(GameState::InGame).and(editor_active)));
+            .add_systems(
+                Update,
+                debug_gizmos.run_if(in_state(GameState::InGame).and(editor_active)),
+            );
     }
 }
 
@@ -222,6 +227,9 @@ pub fn setup(
             asset_server.load("figs/DashCystal/F5.png"),
         ],
         dash_crystal_vanished: asset_server.load("figs/DashCystal/vanished.png"),
+        spring_frames: (0..=5)
+            .map(|frame| asset_server.load(format!("figs/spring/{frame:02}.png")))
+            .collect(),
     };
 
     let map = load_map_from_path(&map_path)
@@ -387,6 +395,8 @@ fn spawn_player(
             jump_buffer_timer: 0.0,
             super_jump_timer: 0.0,
             fast_jump_active: false,
+            spring_lock_timer: 0.0,
+            source: JumpSource::None,
         },
         WallJumpTimer(0.0),
         PlayerStateMachine {
@@ -563,6 +573,36 @@ pub fn spawn_room_geometry(commands: &mut Commands, room: &RoomData, level_art: 
         ));
     }
 
+    for spring in &room.springs {
+        let collider_center = Vec2::new(spring.x, spring.y);
+        let sprite_offset = spring_sprite_offset(spring.direction);
+        let sprite_center = collider_center + sprite_offset;
+
+        commands.spawn((
+            Spring {
+                id: spring.id.clone(),
+                direction: spring.direction,
+                collider_offset: -sprite_offset,
+                animation_timer: 0.0,
+                frame_index: 0,
+                animating: false,
+                player_inside: false,
+                frames: level_art.spring_frames.clone(),
+            },
+            LevelEntity,
+            Sprite {
+                image: level_art.spring_frames[0].clone(),
+                custom_size: Some(SPRING_SPRITE_SIZE),
+                ..default()
+            },
+            Transform {
+                translation: Vec3::new(sprite_center.x, sprite_center.y, SPRING_Z),
+                rotation: spring_rotation(spring.direction),
+                ..default()
+            },
+        ));
+    }
+
     for exit in &room.exits {
         commands.spawn((
             RoomExitMarker {
@@ -603,7 +643,11 @@ fn spawn_room_background(commands: &mut Commands, room: &RoomData, level_art: &L
                 custom_size: Some(room.bounds.size()),
                 ..default()
             },
-            Transform::from_xyz(room.bounds.x, room.bounds.y, BACKGROUND_Z + index as f32 * 0.1),
+            Transform::from_xyz(
+                room.bounds.x,
+                room.bounds.y,
+                BACKGROUND_Z + index as f32 * 0.1,
+            ),
         ));
     }
 }
@@ -675,6 +719,26 @@ fn spawn_ground_tiles(
     }
 }
 
+fn spring_sprite_offset(direction: SpringDirection) -> Vec2 {
+    let visual_overhang = (SPRING_SPRITE_SIZE.y - crate::constants::SPRING_COLLIDER_SIZE.y) * 0.5;
+
+    match direction {
+        SpringDirection::Up => Vec2::new(0.0, visual_overhang),
+        SpringDirection::Down => Vec2::new(0.0, -visual_overhang),
+        SpringDirection::Left => Vec2::new(-visual_overhang, 0.0),
+        SpringDirection::Right => Vec2::new(visual_overhang, 0.0),
+    }
+}
+
+fn spring_rotation(direction: SpringDirection) -> Quat {
+    match direction {
+        SpringDirection::Up => Quat::IDENTITY,
+        SpringDirection::Right => Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
+        SpringDirection::Down => Quat::from_rotation_z(std::f32::consts::PI),
+        SpringDirection::Left => Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
+    }
+}
+
 impl LevelArt {
     pub fn set_current_map_path(&mut self, path: impl Into<std::path::PathBuf>) {
         self.current_map_path = path.into();
@@ -725,7 +789,7 @@ fn tile_exposure_mask(gx: i32, gy: i32, solid_cells: &HashSet<(i32, i32)>) -> u8
 
 fn choose_dirt_tile(mask: u8, gx: i32, gy: i32) -> usize {
     if mask == 0 {
-        return  5;
+        return 5;
         //let seed = (gx.wrapping_mul(73856093) ^ gy.wrapping_mul(19349663)).unsigned_abs() as usize;
         //return if seed % 100 < 85 { 11 } else { 4 };
     }

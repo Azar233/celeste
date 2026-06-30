@@ -4,19 +4,10 @@
   "rooms": [
     {
       "id": "room_00",
-      "bounds": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 1280.0,
-        "h": 180.0
-      },
+      "bounds": { "x": 0.0, "y": 0.0, "w": 1280.0, "h": 180.0 },
       "default_spawn": "start",
       "spawn_points": [
-        {
-          "id": "start",
-          "x": -600.0,
-          "y": -40.0
-        }
+        { "id": "start", "x": -600.0, "y": -40.0 }
       ],
       "collision": [
         {
@@ -32,23 +23,12 @@
           "x": 0.0,
           "y": 0.0,
           "w": 1280.0,
-          "h": 180.0,
-          "art_tag": null
+          "h": 180.0
         }
       ],
       "hazards": [],
       "checkpoints": [],
-      "dashcrystals": [],
-      "springs": [
-        {
-          "id": "editor_spring_1",
-          "x": -622.0,
-          "y": -32.0,
-          "direction": "right"
-        }
-      ],
-      "exits": [],
-      "completion_zones": []
+      "exits": []
     }
   ]
 }

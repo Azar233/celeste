@@ -91,10 +91,8 @@ pub fn update_hair(
             AnimationState::Run => Vec2::ZERO,
             AnimationState::Duck => Vec2::new(0.0, -1.0),
             AnimationState::Dash => Vec2::new(0.0, -2.0),
-            AnimationState::JumpSlow
-            | AnimationState::JumpFast => Vec2::new(0.0, 2.0),
-            | AnimationState::FallSlow
-            | AnimationState::FallFast => Vec2::new(0.0, 0.0),
+            AnimationState::JumpSlow | AnimationState::JumpFast => Vec2::new(0.0, 2.0),
+            AnimationState::FallSlow | AnimationState::FallFast => Vec2::new(0.0, 0.0),
             AnimationState::Climb | AnimationState::ClimbLookback => Vec2::new(0.0, -1.0),
             AnimationState::Death => match frame_index {
                 0 | 1 => Vec2::ZERO,

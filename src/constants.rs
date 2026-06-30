@@ -8,9 +8,15 @@ pub const JUMP_VELOCITY: f32 = 280.0;
 pub const JUMP_GRACE_TIME: f32 = 0.1;
 pub const JUMP_BUFFER_TIME: f32 = 0.1;
 pub const HALF_GRAVITY_THRESHOLD: f32 = 40.0;
-pub const APEX_HALF_GRAVITY_MULTIPLIER: f32 = 0.5;
-pub const LOW_JUMP_MULTIPLIER: f32 = 4.0;
-pub const FALL_MULTIPLIER: f32 = 1.2;
+//gravity
+pub const PLAYER_JUMP_HELD_GRAVITY_MULTIPLIER: f32 = 1.0;
+pub const PLAYER_JUMP_RELEASED_GRAVITY_MULTIPLIER: f32 = 2.0;
+pub const PLAYER_FALL_GRAVITY_MULTIPLIER: f32 = 2.0;
+pub const PLAYER_FALL_HELD_GRAVITY_MULTIPLIER: f32 = 2.0;
+pub const SPRING_ASCEND_GRAVITY_MULTIPLIER: f32 = 2.0;
+pub const SPRING_FALL_GRAVITY_MULTIPLIER: f32 = 2.0;
+pub const SPRING_FALL_HELD_GRAVITY_MULTIPLIER: f32 = 2.0;
+
 pub const MAX_FALL_SPEED: f32 = 260.0;
 
 pub const GROUND_ACCEL: f32 = 1000.0;
@@ -19,6 +25,8 @@ pub const GROUND_TURN_FRICTION: f32 = 1200.0;
 pub const AIR_ACCEL: f32 = 800.0;
 pub const AIR_FRICTION: f32 = 200.0;
 pub const AIR_TURN_FRICTION: f32 = 1000.0;
+
+//climb
 
 pub const WALL_SLIDE_SPEED: f32 = 40.0;
 pub const WALL_CLIMB_SPEED: f32 = 80.0;
@@ -38,11 +46,13 @@ pub const JUMP_AWAY_FROM_WALL: f32 = 140.0;
 pub const WALL_CLIMB_LOCK: f32 = 0.12;
 pub const UPWARD_CORNER_CORRECTION: i32 = 4;
 pub const DASH_CORNER_CORRECTION: i32 = 4;
-pub const CORNER_BOOST_WINDOW: f32 = 0.4;
+//corner boost
+pub const CORNER_BOOST_WINDOW: f32 = 1.0;
 pub const CORNER_BOOST_BONUS_SPEED: f32 = 40.0;
 pub const CORNER_BOOST_MIN_BLOCKED_SPEED: f32 = 20.0;
 pub const CORNER_BOOST_TOP_TOLERANCE: f32 = 1.0;
 
+//dash
 pub const DASH_SPEED: f32 = 300.0;
 pub const DASH_DURATION: f32 = 0.15;
 pub const DASH_FREEZE_TIME: f32 = 0.05;
@@ -82,7 +92,20 @@ pub const PLAYER_RENDER_Z: f32 = 10.0;
 
 pub const DEATH_THRESHOLD: f32 = -200.0;
 
+//dash crystal
 pub const DASH_CRYSTAL_SIZE: Vec2 = Vec2::new(8.0, 8.0);
 pub const DASH_CRYSTAL_ANIMATION_INTERVAL: f32 = 0.1;
 pub const DASH_CRYSTAL_RESPAWN_TIME: f32 = 5.0;
 pub const DASH_CRYSTAL_Z: f32 = 1.0;
+
+//spring
+pub const SPRING_SPRITE_SIZE: Vec2 = Vec2::new(16.0, 12.0);
+pub const SPRING_COLLIDER_SIZE: Vec2 = Vec2::new(16.0, 4.0);
+pub const SPRING_VERTICAL_LAUNCH_SPEED: f32 = 500.0;
+pub const SPRING_SIDE_VERTICAL_SPEED: f32 = 250.0;
+pub const SPRING_SIDE_HORIZONTAL_SPEED: f32 = 200.0;
+pub const SPRING_SIDE_EJECT_DISTANCE: f32 = 4.0;
+pub const SPRING_HORIZONTAL_LOCK_DURATION: f32 = 0.35;
+pub const SPRING_VERTICAL_LOCK_DURATION: f32 = 0.0;
+pub const SPRING_ANIMATION_INTERVAL: f32 = 0.05;
+pub const SPRING_Z: f32 = 1.0;

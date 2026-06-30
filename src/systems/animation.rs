@@ -78,7 +78,8 @@ pub fn animate_sprite(
         let is_moving = velocity.0.x.abs() > 5.0;
         let is_jumping_up = !grounded.0 && velocity.0.y > 0.0;
         let is_falling = !grounded.0 && velocity.0.y <= 0.0;
-        let is_fall_fast = jump_state.fast_jump_active || -velocity.0.y >= FALL_FAST_ANIMATION_SPEED;
+        let is_fall_fast =
+            jump_state.fast_jump_active || -velocity.0.y >= FALL_FAST_ANIMATION_SPEED;
         let next_state = if *state == AnimationState::Death {
             AnimationState::Death
         } else if is_top_out {

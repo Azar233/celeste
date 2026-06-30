@@ -5,12 +5,12 @@ use bevy::prelude::*;
 use crate::app_state::GameState;
 use crate::components::{
     ClimbTopOutState, ColliderSize, CornerBoostState, Crouching, DashSlideState, DashState, Facing,
-    Grounded, Hair, LevelEntity, Player, PlayerState, PlayerStateMachine, Velocity,
-    WallContact, WeatherOverlay,
+    Grounded, Hair, LevelEntity, Player, PlayerState, PlayerStateMachine, Velocity, WallContact,
+    WeatherOverlay,
 };
 use crate::constants::{PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z};
-use crate::level::{load_map_from_path, ActiveRoom, LoadedMap};
-use crate::scene::{spawn_room_geometry, LevelArt};
+use crate::level::{ActiveRoom, LoadedMap, load_map_from_path};
+use crate::scene::{LevelArt, spawn_room_geometry};
 use crate::utils::initial_hair_positions;
 
 // ── Resources ──────────────────────────────────────────
@@ -221,7 +221,10 @@ fn handle_button_interaction(
     menu_root: Query<Entity, With<MenuRoot>>,
     map_registry: Res<MapRegistry>,
     map_list_query: Query<Entity, With<MapList>>,
-    menu_buttons: Query<(Entity, &Interaction, Option<&MenuAction>, Option<&MapItem>), (Changed<Interaction>, With<Button>)>,
+    menu_buttons: Query<
+        (Entity, &Interaction, Option<&MenuAction>, Option<&MapItem>),
+        (Changed<Interaction>, With<Button>),
+    >,
     mut bg_query: Query<&mut BackgroundColor>,
     level_art: Res<LevelArt>,
     loaded_map: Res<LoadedMap>,
@@ -245,8 +248,14 @@ fn handle_button_interaction(
         ),
         (With<Player>, Without<Camera2d>, Without<WeatherOverlay>),
     >,
-    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
-    mut weather_query: Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
+    mut camera_query: Query<
+        &mut Transform,
+        (With<Camera2d>, Without<Player>, Without<WeatherOverlay>),
+    >,
+    mut weather_query: Query<
+        &mut Transform,
+        (With<WeatherOverlay>, Without<Player>, Without<Camera2d>),
+    >,
     mut app_exit: EventWriter<AppExit>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
@@ -432,8 +441,14 @@ fn reload_current_room(
         ),
         (With<Player>, Without<Camera2d>, Without<WeatherOverlay>),
     >,
-    camera_query: &mut Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
-    weather_query: &mut Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
+    camera_query: &mut Query<
+        &mut Transform,
+        (With<Camera2d>, Without<Player>, Without<WeatherOverlay>),
+    >,
+    weather_query: &mut Query<
+        &mut Transform,
+        (With<WeatherOverlay>, Without<Player>, Without<Camera2d>),
+    >,
 ) {
     let path = loaded_map.path.clone();
     let new_map = match load_map_from_path(&path) {
@@ -548,8 +563,14 @@ fn switch_map(
         ),
         (With<Player>, Without<Camera2d>, Without<WeatherOverlay>),
     >,
-    camera_query: &mut Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
-    weather_query: &mut Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
+    camera_query: &mut Query<
+        &mut Transform,
+        (With<Camera2d>, Without<Player>, Without<WeatherOverlay>),
+    >,
+    weather_query: &mut Query<
+        &mut Transform,
+        (With<WeatherOverlay>, Without<Player>, Without<Camera2d>),
+    >,
 ) {
     let path = format!("assets/maps/{}.json", map_name);
     let new_map = match load_map_from_path(&path) {

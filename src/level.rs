@@ -12,7 +12,10 @@ pub fn normalize_tileset_art_tag(art_tag: &str) -> Option<&'static str> {
     let tag = art_tag.trim();
 
     if TILESET_ART_TAGS.contains(&tag) {
-        return TILESET_ART_TAGS.iter().copied().find(|valid_tag| *valid_tag == tag);
+        return TILESET_ART_TAGS
+            .iter()
+            .copied()
+            .find(|valid_tag| *valid_tag == tag);
     }
 
     let lowercase_tag = tag.to_ascii_lowercase();
@@ -69,6 +72,8 @@ pub struct RoomData {
     #[serde(default)]
     pub dashcrystals: Vec<NamedPoint>,
     #[serde(default)]
+    pub springs: Vec<SpringData>,
+    #[serde(default)]
     pub exits: Vec<RoomExitData>,
     #[serde(default)]
     pub completion_zones: Vec<RectData>,
@@ -79,6 +84,34 @@ pub struct NamedPoint {
     pub id: String,
     pub x: f32,
     pub y: f32,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SpringData {
+    pub id: String,
+    pub x: f32,
+    pub y: f32,
+    pub direction: SpringDirection,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SpringDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl SpringDirection {
+    pub fn next(self) -> Self {
+        match self {
+            Self::Up => Self::Right,
+            Self::Right => Self::Down,
+            Self::Down => Self::Left,
+            Self::Left => Self::Up,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -212,7 +245,10 @@ pub fn backup_path_for_map(path: impl AsRef<Path>) -> PathBuf {
     path.with_extension(backup_extension)
 }
 
-pub fn save_map_to_path_with_backup(path: impl AsRef<Path>, map: &MapFile) -> Result<PathBuf, String> {
+pub fn save_map_to_path_with_backup(
+    path: impl AsRef<Path>,
+    map: &MapFile,
+) -> Result<PathBuf, String> {
     let path = path.as_ref();
     let backup_path = backup_path_for_map(path);
 

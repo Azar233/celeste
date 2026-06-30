@@ -3,17 +3,20 @@ use bevy::prelude::*;
 use crate::app_state::GameState;
 use crate::audio::play_death_sfx;
 use crate::components::{
-    AnimationState, AnimationTimer, CheckpointMarker, ClimbStamina, ClimbTopOutState,
-    ColliderSize, CompletionOverlay, CompletionZone, CornerBoostState, Crouching, DashCrystal,
-    DashSlideState, DashState, DashTrailEmitter, Facing, GameplayEntity, Grounded, Hair, Hazard,
+    AnimationState, AnimationTimer, CheckpointMarker, ClimbStamina, ClimbTopOutState, ColliderSize,
+    CompletionOverlay, CompletionZone, CornerBoostState, Crouching, DashCrystal, DashSlideState,
+    DashState, DashTrailEmitter, Facing, GameplayEntity, Grounded, Hair, Hazard, JumpSource,
     JumpState, LevelEntity, MovementInput, Player, PlayerActionInput, PlayerAnimations, PlayerState,
-    PlayerStateMachine, RoomExitMarker, Velocity, WallContact, WallJumpTimer, WeatherOverlay,
+    PlayerStateMachine, RoomExitMarker, Spring, Velocity, WallContact, WallJumpTimer,
+    WeatherOverlay,
 };
 use crate::constants::{
     CLIMB_STAMINA_MAX, DASH_CRYSTAL_ANIMATION_INTERVAL, DASH_CRYSTAL_RESPAWN_TIME,
-    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z,
+    PLAYER_COLLIDER_SIZE, PLAYER_RENDER_Z, SPRING_ANIMATION_INTERVAL, SPRING_COLLIDER_SIZE,
+    SPRING_HORIZONTAL_LOCK_DURATION, SPRING_SIDE_EJECT_DISTANCE, SPRING_SIDE_HORIZONTAL_SPEED,
+    SPRING_SIDE_VERTICAL_SPEED, SPRING_VERTICAL_LAUNCH_SPEED, SPRING_VERTICAL_LOCK_DURATION,
 };
-use crate::level::{ActiveRoom, LoadedMap, RectData};
+use crate::level::{ActiveRoom, LoadedMap, RectData, SpringDirection};
 use crate::scene::{LevelArt, is_chapter_02_map_path, spawn_room_geometry};
 use crate::utils::{check_collision, initial_hair_positions};
 
@@ -189,6 +192,8 @@ fn reset_player_runtime_input(
     jump_state.jump_buffer_timer = 0.0;
     jump_state.super_jump_timer = 0.0;
     jump_state.fast_jump_active = false;
+    jump_state.spring_lock_timer = 0.0;
+    jump_state.source = JumpSource::None;
     wall_jump_timer.0 = 0.0;
     movement_input.x = 0.0;
     movement_input.y = 0.0;
@@ -386,10 +391,8 @@ pub fn update_death_sequence(
 
             if *animation_state != AnimationState::Death {
                 *animation_state = AnimationState::Death;
-                animation_timer.0 = Timer::from_seconds(
-                    DEATH_ANIMATION_FRAME_INTERVAL,
-                    TimerMode::Repeating,
-                );
+                animation_timer.0 =
+                    Timer::from_seconds(DEATH_ANIMATION_FRAME_INTERVAL, TimerMode::Repeating);
                 sprite.image = animations.death_texture.clone();
                 sprite.texture_atlas = Some(TextureAtlas {
                     layout: animations.death_layout.clone(),
@@ -401,8 +404,8 @@ pub fn update_death_sequence(
             }
 
             death_sequence.timer += dt;
-            let frame_index = (death_sequence.timer / DEATH_ANIMATION_FRAME_INTERVAL).floor()
-                as usize;
+            let frame_index =
+                (death_sequence.timer / DEATH_ANIMATION_FRAME_INTERVAL).floor() as usize;
             death_sequence.frame_index = frame_index.min(DEATH_ANIMATION_FRAMES - 1);
             if let Some(atlas) = &mut sprite.texture_atlas {
                 atlas.index = death_sequence.frame_index;
@@ -520,11 +523,7 @@ pub fn update_death_sequence(
     }
 }
 
-fn set_hair_visibility(
-    hair: &Hair,
-    visible: bool,
-    visibility_query: &mut Query<&mut Visibility>,
-) {
+fn set_hair_visibility(hair: &Hair, visible: bool, visibility_query: &mut Query<&mut Visibility>) {
     let visibility = if visible {
         Visibility::Visible
     } else {
@@ -594,7 +593,12 @@ pub fn update_dash_crystals(
     time: Res<Time>,
     mut crystals: Query<(&Transform, &mut Sprite, &mut DashCrystal), Without<Player>>,
     mut player_query: Query<
-        (&Transform, &ColliderSize, &mut DashState, &mut PlayerActionInput),
+        (
+            &Transform,
+            &ColliderSize,
+            &mut DashState,
+            &mut PlayerActionInput,
+        ),
         With<Player>,
     >,
 ) {
@@ -643,6 +647,135 @@ pub fn update_dash_crystals(
             crystal.respawn_timer = DASH_CRYSTAL_RESPAWN_TIME;
             crystal.animation_timer = 0.0;
             sprite.image = crystal.vanished_frame.clone();
+        }
+    }
+}
+
+pub fn update_springs(
+    time: Res<Time>,
+    mut springs: Query<(&Transform, &mut Sprite, &mut Spring), Without<Player>>,
+    mut player_query: Query<
+        (
+            &mut Transform,
+            &ColliderSize,
+            &mut Velocity,
+            &mut DashState,
+            &mut ClimbStamina,
+            &mut JumpState,
+            &mut PlayerStateMachine,
+        ),
+        With<Player>,
+    >,
+) {
+    let dt = time.delta_secs();
+    let Ok((
+        mut player_transform,
+        player_size,
+        mut velocity,
+        mut dash_state,
+        mut climb_stamina,
+        mut jump_state,
+        mut state_machine,
+    )) = player_query.get_single_mut()
+    else {
+        return;
+    };
+
+    for (spring_transform, mut sprite, mut spring) in &mut springs {
+        let spring_size = spring_collision_size(spring.direction);
+        let spring_collider_center =
+            spring_transform.translation + spring.collider_offset.extend(0.0);
+
+        let touching = check_collision(
+            player_transform.translation,
+            player_size.0,
+            spring_collider_center,
+            spring_size,
+        );
+
+        if touching && !spring.player_inside {
+            jump_state.jump_buffer_timer = 0.0;
+            jump_state.jump_grace_timer = 0.0;
+            jump_state.super_jump_timer = 0.0;
+            jump_state.fast_jump_active = false;
+            jump_state.source = JumpSource::Spring;
+            jump_state.spring_lock_timer = match spring.direction {
+                SpringDirection::Left | SpringDirection::Right => SPRING_HORIZONTAL_LOCK_DURATION,
+                SpringDirection::Up | SpringDirection::Down => SPRING_VERTICAL_LOCK_DURATION,
+            };
+
+            if state_machine.current != PlayerState::Normal {
+                state_machine.previous = state_machine.current;
+                state_machine.current = PlayerState::Normal;
+            }
+
+            match spring.direction {
+                SpringDirection::Up => {
+                    velocity.0.x = 0.0;
+                    velocity.0.y = SPRING_VERTICAL_LAUNCH_SPEED;
+                }
+                SpringDirection::Down => {
+                    velocity.0.x = 0.0;
+                    velocity.0.y = -SPRING_VERTICAL_LAUNCH_SPEED;
+                }
+                SpringDirection::Left => {
+                    velocity.0.x = -SPRING_SIDE_HORIZONTAL_SPEED;
+                    velocity.0.y = SPRING_SIDE_VERTICAL_SPEED;
+                    player_transform.translation.x = spring_collider_center.x
+                        - (player_size.0.x * 0.5)
+                        - (spring_size.x * 0.5)
+                        - SPRING_SIDE_EJECT_DISTANCE;
+                }
+                SpringDirection::Right => {
+                    velocity.0.x = SPRING_SIDE_HORIZONTAL_SPEED;
+                    velocity.0.y = SPRING_SIDE_VERTICAL_SPEED;
+                    player_transform.translation.x = spring_collider_center.x
+                        + (player_size.0.x * 0.5)
+                        + (spring_size.x * 0.5)
+                        + SPRING_SIDE_EJECT_DISTANCE;
+                }
+            }
+
+            dash_state.is_dashing = false;
+            dash_state.timer = 0.0;
+            dash_state.dashes_remaining = 1;
+            climb_stamina.current = CLIMB_STAMINA_MAX;
+            climb_stamina.low_flash_timer = 0.0;
+            spring.animating = true;
+            spring.animation_timer = 0.0;
+            spring.frame_index = 0;
+            if let Some(first_frame) = spring.frames.first() {
+                sprite.image = first_frame.clone();
+            }
+        }
+        spring.player_inside = touching;
+
+        if !spring.animating || spring.frames.is_empty() {
+            continue;
+        }
+
+        spring.animation_timer += dt;
+        while spring.animation_timer >= SPRING_ANIMATION_INTERVAL {
+            spring.animation_timer -= SPRING_ANIMATION_INTERVAL;
+            spring.frame_index += 1;
+
+            if spring.frame_index >= spring.frames.len() {
+                spring.frame_index = 0;
+                spring.animating = false;
+                sprite.image = spring.frames[0].clone();
+                break;
+            }
+
+            sprite.image = spring.frames[spring.frame_index].clone();
+        }
+    }
+}
+
+fn spring_collision_size(direction: SpringDirection) -> Vec2 {
+    match direction {
+        SpringDirection::Up | SpringDirection::Down => SPRING_COLLIDER_SIZE,
+        SpringDirection::Left | SpringDirection::Right => {
+            Vec2::new(SPRING_COLLIDER_SIZE.y, SPRING_COLLIDER_SIZE.x)
         }
     }
 }
@@ -1003,8 +1136,14 @@ pub fn camera_follow(
     active_room: Res<ActiveRoom>,
     loaded_map: Res<LoadedMap>,
     window_query: Query<&Window>,
-    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<Player>, Without<WeatherOverlay>)>,
-    mut weather_query: Query<&mut Transform, (With<WeatherOverlay>, Without<Player>, Without<Camera2d>)>,
+    mut camera_query: Query<
+        &mut Transform,
+        (With<Camera2d>, Without<Player>, Without<WeatherOverlay>),
+    >,
+    mut weather_query: Query<
+        &mut Transform,
+        (With<WeatherOverlay>, Without<Player>, Without<Camera2d>),
+    >,
     time: Res<Time>,
 ) {
     let Ok(player_transform) = player_query.get_single() else {
@@ -1017,7 +1156,11 @@ pub fn camera_follow(
         return;
     };
 
-    let target = clamped_camera_position(&room.bounds, player_transform.translation.truncate(), window);
+    let target = clamped_camera_position(
+        &room.bounds,
+        player_transform.translation.truncate(),
+        window,
+    );
 
     // Smooth follow (exponential ease)
     let follow_speed = 8.0;

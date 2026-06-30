@@ -224,6 +224,14 @@
           "y": 56.0
         }
       ],
+      "springs": [
+        {
+          "id": "editor_spring_1",
+          "x": -48.0,
+          "y": -38.0,
+          "direction": "up"
+        }
+      ],
       "exits": [
         {
           "id": "room_00_to_01",
@@ -428,6 +436,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_01_to_00",
@@ -531,6 +540,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_02_to_01",
@@ -711,6 +721,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_03_to_02",
@@ -851,6 +862,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_04_to_03",
@@ -960,6 +972,7 @@
         }
       ],
       "dashcrystals": [],
+      "springs": [],
       "exits": [
         {
           "id": "room_05_to_04",
@@ -1111,6 +1124,7 @@
           "y": 392.0
         }
       ],
+      "springs": [],
       "exits": [
         {
           "id": "room_06_to_05",

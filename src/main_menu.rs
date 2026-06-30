@@ -262,7 +262,12 @@ fn handle_main_menu_buttons(
     mut commands: Commands,
     page_content_query: Query<(Entity, Option<&Children>), With<MainMenuPageContent>>,
     buttons: Query<
-        (Entity, &Interaction, Option<&MainMenuAction>, Option<&ChapterButton>),
+        (
+            Entity,
+            &Interaction,
+            Option<&MainMenuAction>,
+            Option<&ChapterButton>,
+        ),
         (Changed<Interaction>, With<Button>),
     >,
     mut bg_query: Query<&mut BackgroundColor>,
@@ -300,11 +305,19 @@ fn handle_main_menu_buttons(
                         }
                         MenuAction::SelectChapter => {
                             *page = MainMenuPage::ChapterSelect;
-                            rebuild_main_menu_page(&mut commands, &page_content_query, MainMenuPage::ChapterSelect);
+                            rebuild_main_menu_page(
+                                &mut commands,
+                                &page_content_query,
+                                MainMenuPage::ChapterSelect,
+                            );
                         }
                         MenuAction::ReturnToRoot => {
                             *page = MainMenuPage::Root;
-                            rebuild_main_menu_page(&mut commands, &page_content_query, MainMenuPage::Root);
+                            rebuild_main_menu_page(
+                                &mut commands,
+                                &page_content_query,
+                                MainMenuPage::Root,
+                            );
                         }
                         MenuAction::ExitGame => {
                             app_exit.send(AppExit::Success);
@@ -336,13 +349,15 @@ fn rebuild_main_menu_page(
         }
     }
 
-    commands.entity(page_content).with_children(|parent| match page {
-        MainMenuPage::Root => spawn_root_page(parent),
-        MainMenuPage::ChapterSelect => {
-            let chapters = scan_chapters();
-            spawn_chapter_select_page(parent, &chapters);
-        }
-    });
+    commands
+        .entity(page_content)
+        .with_children(|parent| match page {
+            MainMenuPage::Root => spawn_root_page(parent),
+            MainMenuPage::ChapterSelect => {
+                let chapters = scan_chapters();
+                spawn_chapter_select_page(parent, &chapters);
+            }
+        });
 }
 
 fn cleanup_main_menu(
@@ -366,7 +381,10 @@ fn scan_chapters() -> Vec<ChapterEntry> {
     if let Ok(entries) = fs::read_dir("assets/maps") {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|extension| extension == "json") {
+            if path
+                .extension()
+                .is_some_and(|extension| extension == "json")
+            {
                 let label = path
                     .file_stem()
                     .unwrap_or_default()
